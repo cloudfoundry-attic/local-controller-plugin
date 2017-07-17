@@ -1,15 +1,14 @@
 package models_test
 
 import (
-	. "../csi"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/jeffpak/csi"
 	"golang.org/x/net/context"
 	"time"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
 	"code.cloudfoundry.org/goshims/filepathshim/filepath_fake"
-	"../models"
+	"github.com/jeffpak/local-controller-plugin/models"
 )
 
 var _ = Describe("ControllerService", func() {

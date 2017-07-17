@@ -1,7 +1,7 @@
 package models
 
 import(
-  "github.com/container-storage-interface/csi"
+  . "github.com/jeffpak/csi"
   "golang.org/x/net/context"
   "code.cloudfoundry.org/goshims/osshim"
   "code.cloudfoundry.org/goshims/filepathshim"
