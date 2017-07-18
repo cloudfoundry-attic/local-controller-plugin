@@ -45,7 +45,6 @@ func (cs *Controller) CreateVolume(ctx context.Context, in *CreateVolumeRequest)
     return &CreateVolumeResponse{}, errors.New("Missing mandatory 'volume_name'")
   }
 
-  //var existingVolume *VolumeInfo
   if _, ok = cs.volumes[volName]; !ok {
     logger.Info("creating-volume", lager.Data{"volume_name": volName, "volume_id": volName})
     localVol := LocalVolume{VolumeInfo: VolumeInfo{Id: &VolumeID{Values: map[string]string{"volume_name": volName}}, AccessMode: &AccessMode{Mode: AccessMode_UNKNOWN}}}
@@ -56,12 +55,6 @@ func (cs *Controller) CreateVolume(ctx context.Context, in *CreateVolumeRequest)
         VolumeInfo: &localVol.VolumeInfo,
       }}}, nil
   }
-  //TODO: Is this ever going to happen? Won't Name and Id always be the same?
-  //if existingVolume.Id != in.Name {
-    //logger.Info("duplicate-volume", lager.Data{"volume_name": in.Name})
-  //  return CreateVolumeResponse{}, errors.New(fmt.Sprintf("Volume '%s' already exists with a different volume ID", in.Name))
-  //}
-
   return &CreateVolumeResponse{}, nil
 }
 
@@ -73,42 +66,21 @@ func (cs *Controller) DeleteVolume(context context.Context, request *DeleteVolum
   var ok bool
 
   if volName, ok = request.GetVolumeId().GetValues()["volume_name"]; !ok {
-    //logger.Error("failed-volume-deletion", fmt.Errorf("Request has no volume name"))
-    //return &DeleteVolumeResponse, errors.New("Request missing volume name")
+    logger.Error("failed-volume-deletion", fmt.Errorf("Request has no volume name"))
+    return &DeleteVolumeResponse{}, errors.New("Request missing 'volume_name'")
   }
-
-
   if volName == "" {
-    return &DeleteVolumeResponse{}, errors.New("Missing mandatory 'volume_name'")
+    logger.Error("failed-volume-deletion", fmt.Errorf("Request has blank volume name"))
+    return &DeleteVolumeResponse{}, errors.New("Request needs non-empty 'volume_name'")
   }
 
-  //var vol *LocalVolume
-  //var exists bool
   if _, exists := cs.volumes[volName]; !exists {
     logger.Error("failed-volume-removal", errors.New(fmt.Sprintf("Volume %s not found", volName)))
     return &DeleteVolumeResponse{}, errors.New(fmt.Sprintf("Volume '%s' not found", volName))
   }
-
-  //TODO: Mountpoint logic
-  //if vol.Mountpoint != "" {
-  //  response = d.unmount(logger, removeRequest.Name, vol.Mountpoint)
-  //  if response.Err != "" {
-  //    return response
-  //  }
-  //}
-
-  volumePath := cs.volumePath(logger, volName)
-
-  logger.Info("remove-volume-folder", lager.Data{"volume": volumePath})
-  err := cs.os.RemoveAll(volumePath)
-  if err != nil {
-    logger.Error("failed-removing-volume", err)
-    return &DeleteVolumeResponse{}, errors.New(fmt.Sprintf("Failed removing mount path: %s", err))
-  }
-
-  logger.Info("removing-volume", lager.Data{"name": volName})
-  delete(cs.volumes, volName)
-  return &DeleteVolumeResponse{}, nil
+  return &DeleteVolumeResponse{Reply: &DeleteVolumeResponse_Result_{
+    Result: &DeleteVolumeResponse_Result{},
+  }}, nil
 
 }
 func (cs *Controller) ControllerPublishVolume(ctx context.Context, in *ControllerPublishVolumeRequest) (*ControllerPublishVolumeResponse, error) { return &ControllerPublishVolumeResponse{}, nil }

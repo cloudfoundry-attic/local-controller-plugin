@@ -61,6 +61,43 @@ var _ = Describe("ControllerService", func() {
 			})
 		})
 
+		Describe("DeleteVolume", func() {
+			It("should fail if no volume ID is provided in the request", func() {
+				_, err = cs.DeleteVolume(context, &DeleteVolumeRequest{})
+				Expect(err.Error()).To(Equal("Request missing 'volume_name'"))
+			})
+
+			It("should fail if volume name is empty", func() {
+				_, err = cs.DeleteVolume(context, &DeleteVolumeRequest{
+					VolumeId: &VolumeID{Values: map[string]string{"volume_name": ""}},
+				})
+				Expect(err.Error()).To(Equal("Request needs non-empty 'volume_name'"))
+			})
+
+			It("should fail if no volume was found", func() {
+				_, err = cs.DeleteVolume(context, &DeleteVolumeRequest{
+					VolumeId: &VolumeID{Values: map[string]string{"volume_name": volumeName}},
+				})
+				Expect(err.Error()).To(Equal("Volume '" + volumeName + "' not found"))
+			})
+
+			Context("when the volume has been created", func() {
+				BeforeEach(func() {
+					createSuccessful(context, cs, fakeOs, volumeName, vc)
+				})
+
+				It("does not fail", func() {
+					response := deleteSuccessful(context, cs, volID)
+					Expect(response).To(Equal(&DeleteVolumeResponse{
+						Reply: &DeleteVolumeResponse_Result_{
+							Result: &DeleteVolumeResponse_Result{
+							},
+						},
+					}))
+				})
+			})
+		})
+
 		Describe("ControllerPublishVolume", func() {
 			var (
 				request *ControllerPublishVolumeRequest
@@ -194,53 +231,6 @@ var _ = Describe("ControllerService", func() {
 			})
 		})
 	})
-
-	Describe("DeleteVolume", func() {
-		var (
-			response *DeleteVolumeResponse
-		)
-
-		It("should fail if no volume name is provided", func() {
-			_, err := cs.DeleteVolume(context, &DeleteVolumeRequest{
-				VolumeId: &VolumeID{},
-			})
-			Expect(err.Error()).To(Equal("Missing mandatory 'volume_name'"))
-		})
-
-		It("should fail if no volume was created", func() {
-			volID = &VolumeID{Values: map[string]string{"volume_name": volumeName}}
-			_, err := cs.DeleteVolume(context, &DeleteVolumeRequest{
-				VolumeId: volID,
-			})
-			Expect(err.Error()).To(Equal("Volume '" + volumeName + "' not found"))
-		})
-
-		Context("when the volume has been created", func() {
-			BeforeEach(func() {
-				createSuccessful(context, cs, fakeOs, volumeName, vc)
-			})
-
-			It("destroys the volume", func() {
-				volID = &VolumeID{Values: map[string]string{"volume_name": volumeName}}
-				deleteSuccessful(context, cs, *volID)
-				Expect(fakeOs.RemoveAllCallCount()).To(Equal(1))
-
-				_, err = cs.DeleteVolume(context, &DeleteVolumeRequest{
-					VolumeId: volID,
-				})
-				Expect(err.Error()).To(Equal("Volume '" + volumeName + "' not found"))
-			})
-		})
-
-		Context("when the volume has not been created", func() {
-			It("returns an error", func() {
-				response, err = cs.DeleteVolume(context, &DeleteVolumeRequest{
-					VolumeId: volID,
-				})
-				Expect(err.Error()).To(Equal("Volume '" + volumeName + "' not found"))
-			})
-		})
-	})
 })
 
 
@@ -264,10 +254,10 @@ func createSuccessful(ctx context.Context, cs ControllerServer, fakeOs *os_fake.
 	return createResponse
 }
 
-func deleteSuccessful(ctx context.Context, cs ControllerServer, volumeID VolumeID) *DeleteVolumeResponse{
+func deleteSuccessful(ctx context.Context, cs ControllerServer, volumeID *VolumeID) *DeleteVolumeResponse{
 	deleteResponse, err := cs.DeleteVolume(ctx, &DeleteVolumeRequest{
 		Version: &Version{},
-		VolumeId: &volumeID,
+		VolumeId: volumeID,
 	})
 	Expect(err).To(BeNil())
 	return deleteResponse
