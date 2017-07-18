@@ -225,8 +225,12 @@ var _ = Describe("ControllerService", func() {
 				JustBeforeEach(func() {
 					expectedResponse, err = cs.ControllerGetCapabilities(context, request)
 				})
-				It("should return a ControllerGetCapabilitiesResponse", func() {
-					Expect(*expectedResponse).NotTo(BeNil())
+
+				It("should return a ControllerGetCapabilitiesResponse with only CREATE_DELETE_VOLUME specified", func() {
+					Expect(expectedResponse).NotTo(BeNil())
+					capabilities := expectedResponse.GetResult().GetCapabilities()
+					Expect(capabilities).To(HaveLen(1))
+					Expect(capabilities[0].GetRpc().GetType()).To(Equal(ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME))
 				})
 			})
 		})

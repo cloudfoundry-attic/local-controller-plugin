@@ -93,7 +93,14 @@ func (cs *Controller) ListVolumes(ctx context.Context, in *ListVolumesRequest) (
 
 func (cs *Controller) GetCapacity(ctx context.Context, in *GetCapacityRequest) (*GetCapacityResponse, error) { return &GetCapacityResponse{}, nil }
 
-func (cs *Controller) ControllerGetCapabilities(ctx context.Context, in *ControllerGetCapabilitiesRequest) (*ControllerGetCapabilitiesResponse, error) { return &ControllerGetCapabilitiesResponse{}, nil}
+func (cs *Controller) ControllerGetCapabilities(ctx context.Context, in *ControllerGetCapabilitiesRequest) (*ControllerGetCapabilitiesResponse, error) {
+  return &ControllerGetCapabilitiesResponse{Reply: &ControllerGetCapabilitiesResponse_Result_{
+      Result: &ControllerGetCapabilitiesResponse_Result{
+        Capabilities: []*ControllerServiceCapability{{
+          Type: &ControllerServiceCapability_Rpc{
+            Rpc: &ControllerServiceCapability_RPC{
+              Type: ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME}}}}}}}, nil
+}
 
 
 func (cs *Controller) volumePath(logger lager.Logger, volumeId string) string {
