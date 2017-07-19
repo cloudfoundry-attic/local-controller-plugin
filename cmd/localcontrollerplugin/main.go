@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/goshims/osshim"
 
 	csi "github.com/jeffpak/csi"
-	"github.com/jeffpak/local-controller-plugin/models"
+	"github.com/jeffpak/local-controller-plugin/controller"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -27,7 +27,7 @@ func main() {
 	}
 	s := grpc.NewServer()
 
-	controller := models.NewController(&osshim.OsShim{}, &filepathshim.FilepathShim{}, "")
+	controller := controller.NewController(&osshim.OsShim{}, &filepathshim.FilepathShim{}, "")
 	csi.RegisterControllerServer(s, controller)
 
 	// Register reflection service on gRPC server.

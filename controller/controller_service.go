@@ -1,4 +1,4 @@
-package models
+package controller
 
 import (
 	"errors"

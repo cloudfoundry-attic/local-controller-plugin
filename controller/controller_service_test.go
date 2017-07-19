@@ -1,4 +1,4 @@
-package models_test
+package controller_test
 
 import (
 	. "github.com/onsi/ginkgo"
@@ -8,12 +8,12 @@ import (
 	"time"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
 	"code.cloudfoundry.org/goshims/filepathshim/filepath_fake"
-	"github.com/jeffpak/local-controller-plugin/models"
+	"github.com/jeffpak/local-controller-plugin/controller"
 )
 
 var _ = Describe("ControllerService", func() {
 	var(
-		cs *models.Controller
+		cs *controller.Controller
 		context context.Context
 
 		fakeOs       *os_fake.FakeOs
@@ -30,7 +30,7 @@ var _ = Describe("ControllerService", func() {
 		mountDir = "/path/to/mount"
 		fakeOs = &os_fake.FakeOs{}
 		fakeFilepath = &filepath_fake.FakeFilepath{}
-		cs = models.NewController(fakeOs, fakeFilepath, mountDir)
+		cs = controller.NewController(fakeOs, fakeFilepath, mountDir)
 		context = &DummyContext{}
 		volID = &VolumeID{Values: map[string]string{"volume_name": "vol-name"}}
 		volumeName = "vol-name"
