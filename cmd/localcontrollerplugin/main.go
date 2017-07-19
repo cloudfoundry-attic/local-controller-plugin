@@ -18,7 +18,7 @@ const (
 )
 
 //
-////CreateVolume will have been defined under models.
+////CreateVolume will have been defined under controller.
 
 func main() {
 	lis, err := net.Listen("tcp", port)
