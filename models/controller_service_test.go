@@ -32,9 +32,9 @@ var _ = Describe("ControllerService", func() {
 		fakeFilepath = &filepath_fake.FakeFilepath{}
 		cs = models.NewController(fakeOs, fakeFilepath, mountDir)
 		context = &DummyContext{}
-		volID = &VolumeID{Values: map[string]string{"volume_name": "abcd"}}
-		volumeName = "abcd"
-		vc = []*VolumeCapability{{Value: &VolumeCapability_Mount{}}}
+		volID = &VolumeID{Values: map[string]string{"volume_name": "vol-name"}}
+		volumeName = "vol-name"
+		vc = []*VolumeCapability{{Value: &VolumeCapability_Mount{Mount: &VolumeCapability_MountVolume{}}}}
 		volInfo	 = &VolumeInfo{
 							AccessMode: &AccessMode{Mode:AccessMode_UNKNOWN},
 							Id: volID}
@@ -151,19 +151,77 @@ var _ = Describe("ControllerService", func() {
 				request *ValidateVolumeCapabilitiesRequest
 				expectedResponse *ValidateVolumeCapabilitiesResponse
 			)
-			Context("when ValidateVolumeCapabilities is called with a ValidateVolumeCapabilitiesRequest", func() {
+			Context("when called with no capabilities", func() {
 				BeforeEach(func() {
 					request = &ValidateVolumeCapabilitiesRequest{
 						&Version{Major: 0, Minor: 0, Patch: 1},
 						volInfo,
-						[]*VolumeCapability{&VolumeCapability{}},
-					}
+						[]*VolumeCapability{{Value: &VolumeCapability_Mount{
+							Mount: &VolumeCapability_MountVolume{
+								MountFlags: []string{""},
+							}}}}}
 				})
 				JustBeforeEach(func() {
 					expectedResponse, err = cs.ValidateVolumeCapabilities(context, request)
 				})
 				It("should return a ValidateVolumeResponse", func() {
-					Expect(*expectedResponse).NotTo(BeNil())
+					Expect(err).To(BeNil())
+					Expect(expectedResponse).To(Equal(&ValidateVolumeCapabilitiesResponse{
+						Reply: &ValidateVolumeCapabilitiesResponse_Result_{
+							Result: &ValidateVolumeCapabilitiesResponse_Result{Supported: true},
+					}}))
+				})
+			})
+
+			Context("when called with unsupported FsType capabilities", func() {
+				BeforeEach(func() {
+					request = &ValidateVolumeCapabilitiesRequest{
+						&Version{Major: 0, Minor: 0, Patch: 1},
+						volInfo,
+						[]*VolumeCapability{{Value: &VolumeCapability_Mount{
+							Mount: &VolumeCapability_MountVolume{
+								FsType: "unsupported",
+							}}}},
+					}
+				})
+				JustBeforeEach(func() {
+					expectedResponse, err = cs.ValidateVolumeCapabilities(context, request)
+				})
+				It("should return an error", func() {
+					Expect(err).To(BeNil())
+					Expect(expectedResponse).To(Equal(&ValidateVolumeCapabilitiesResponse{
+						Reply: &ValidateVolumeCapabilitiesResponse_Result_{
+							Result: &ValidateVolumeCapabilitiesResponse_Result{
+								Supported: false,
+								Message: "Specifying FsType is unsupported.",
+							},
+						}}))
+				})
+			})
+
+			Context("when called with unsupported MountFlag capabilities", func() {
+				BeforeEach(func() {
+					request = &ValidateVolumeCapabilitiesRequest{
+						&Version{Major: 0, Minor: 0, Patch: 1},
+						volInfo,
+						[]*VolumeCapability{{Value: &VolumeCapability_Mount{
+							Mount: &VolumeCapability_MountVolume{
+								MountFlags: []string{"unsupported"},
+							}}}},
+					}
+				})
+				JustBeforeEach(func() {
+					expectedResponse, err = cs.ValidateVolumeCapabilities(context, request)
+				})
+				It("should return an error", func() {
+					Expect(err).To(BeNil())
+					Expect(expectedResponse).To(Equal(&ValidateVolumeCapabilitiesResponse{
+						Reply: &ValidateVolumeCapabilitiesResponse_Result_{
+							Result: &ValidateVolumeCapabilitiesResponse_Result{
+								Supported: false,
+								Message: "Specifying mount flags is unsupported.",
+							}},
+					}))
 				})
 			})
 		})
