@@ -30,7 +30,7 @@ var _ = Describe("Main", func() {
   })
 
   Context("with a driver path", func() {
-    It("listens on tcp/7589 by default", func() {
+    It("listens on tcp/50051 by default", func() {
       EventuallyWithOffset(1, func() error {
         _, err := net.Dial("tcp", "0.0.0.0:50051")
         return err
