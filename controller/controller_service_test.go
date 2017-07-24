@@ -1,19 +1,20 @@
 package controller_test
 
 import (
+	"time"
+
+	"code.cloudfoundry.org/goshims/filepathshim/filepath_fake"
+	"code.cloudfoundry.org/goshims/osshim/os_fake"
+	. "github.com/jeffpak/csi"
+	"github.com/jeffpak/local-controller-plugin/controller"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/jeffpak/csi"
 	"golang.org/x/net/context"
-	"time"
-	"code.cloudfoundry.org/goshims/osshim/os_fake"
-	"code.cloudfoundry.org/goshims/filepathshim/filepath_fake"
-	"github.com/jeffpak/local-controller-plugin/controller"
 )
 
 var _ = Describe("ControllerService", func() {
-	var(
-		cs *controller.Controller
+	var (
+		cs      *controller.Controller
 		context context.Context
 
 		fakeOs       *os_fake.FakeOs
@@ -22,7 +23,7 @@ var _ = Describe("ControllerService", func() {
 		volumeName   string
 		volID        *VolumeID
 		vc           []*VolumeCapability
-		volInfo			 *VolumeInfo
+		volInfo      *VolumeInfo
 		err          error
 	)
 
@@ -35,14 +36,14 @@ var _ = Describe("ControllerService", func() {
 		volID = &VolumeID{Values: map[string]string{"volume_name": "vol-name"}}
 		volumeName = "vol-name"
 		vc = []*VolumeCapability{{Value: &VolumeCapability_Mount{Mount: &VolumeCapability_MountVolume{}}}}
-		volInfo	 = &VolumeInfo{
-							AccessMode: &AccessMode{Mode:AccessMode_UNKNOWN},
-							Id: volID}
+		volInfo = &VolumeInfo{
+			AccessMode: &AccessMode{Mode: AccessMode_UNKNOWN},
+			Id:         volID}
 	})
 
 	Describe("CreateVolume", func() {
 		var (
-		  expectedResponse *CreateVolumeResponse
+			expectedResponse *CreateVolumeResponse
 		)
 
 		Context("when CreateVolume is called with a CreateVolumeRequest", func() {
@@ -58,6 +59,22 @@ var _ = Describe("ControllerService", func() {
 						},
 					},
 				}))
+			})
+
+			Context("when the Volume exists", func() {
+				BeforeEach(func() {
+					expectedResponse = createSuccessful(context, cs, fakeOs, volumeName, vc)
+				})
+
+				It("should succeed and respond with the existent volume", func() {
+					Expect(*expectedResponse).To(Equal(CreateVolumeResponse{
+						Reply: &CreateVolumeResponse_Result_{
+							Result: &CreateVolumeResponse_Result{
+								VolumeInfo: volInfo,
+							},
+						},
+					}))
+				})
 			})
 		})
 
@@ -90,8 +107,7 @@ var _ = Describe("ControllerService", func() {
 					response := deleteSuccessful(context, cs, volID)
 					Expect(response).To(Equal(&DeleteVolumeResponse{
 						Reply: &DeleteVolumeResponse_Result_{
-							Result: &DeleteVolumeResponse_Result{
-							},
+							Result: &DeleteVolumeResponse_Result{},
 						},
 					}))
 				})
@@ -100,7 +116,7 @@ var _ = Describe("ControllerService", func() {
 
 		Describe("ControllerPublishVolume", func() {
 			var (
-				request *ControllerPublishVolumeRequest
+				request          *ControllerPublishVolumeRequest
 				expectedResponse *ControllerPublishVolumeResponse
 			)
 
@@ -125,7 +141,7 @@ var _ = Describe("ControllerService", func() {
 
 		Describe("ControllerUnpublishVolume", func() {
 			var (
-				request *ControllerUnpublishVolumeRequest
+				request          *ControllerUnpublishVolumeRequest
 				expectedResponse *ControllerUnpublishVolumeResponse
 			)
 			Context("when ControllerUnpublishVolume is called with a ControllerUnpublishVolumeRequest", func() {
@@ -148,7 +164,7 @@ var _ = Describe("ControllerService", func() {
 
 		Describe("ValidateVolumeCapabilities", func() {
 			var (
-				request *ValidateVolumeCapabilitiesRequest
+				request          *ValidateVolumeCapabilitiesRequest
 				expectedResponse *ValidateVolumeCapabilitiesResponse
 			)
 			Context("when called with no capabilities", func() {
@@ -169,7 +185,7 @@ var _ = Describe("ControllerService", func() {
 					Expect(expectedResponse).To(Equal(&ValidateVolumeCapabilitiesResponse{
 						Reply: &ValidateVolumeCapabilitiesResponse_Result_{
 							Result: &ValidateVolumeCapabilitiesResponse_Result{Supported: true},
-					}}))
+						}}))
 				})
 			})
 
@@ -193,7 +209,7 @@ var _ = Describe("ControllerService", func() {
 						Reply: &ValidateVolumeCapabilitiesResponse_Result_{
 							Result: &ValidateVolumeCapabilitiesResponse_Result{
 								Supported: false,
-								Message: "Specifying FsType is unsupported.",
+								Message:   "Specifying FsType is unsupported.",
 							},
 						}}))
 				})
@@ -219,17 +235,16 @@ var _ = Describe("ControllerService", func() {
 						Reply: &ValidateVolumeCapabilitiesResponse_Result_{
 							Result: &ValidateVolumeCapabilitiesResponse_Result{
 								Supported: false,
-								Message: "Specifying mount flags is unsupported.",
+								Message:   "Specifying mount flags is unsupported.",
 							}},
 					}))
 				})
 			})
 		})
 
-
 		Describe("ListVolumes", func() {
 			var (
-				request *ListVolumesRequest
+				request          *ListVolumesRequest
 				expectedResponse *ListVolumesResponse
 			)
 			Context("when ListVolumes is called with a ListVolumesRequest", func() {
@@ -251,7 +266,7 @@ var _ = Describe("ControllerService", func() {
 
 		Describe("GetCapacity", func() {
 			var (
-				request *GetCapacityRequest
+				request          *GetCapacityRequest
 				expectedResponse *GetCapacityResponse
 			)
 			Context("when GetCapacity is called with a GetCapacityRequest", func() {
@@ -271,7 +286,7 @@ var _ = Describe("ControllerService", func() {
 
 		Describe("ControllerGetCapabilities", func() {
 			var (
-				request *ControllerGetCapabilitiesRequest
+				request          *ControllerGetCapabilitiesRequest
 				expectedResponse *ControllerGetCapabilitiesResponse
 			)
 			Context("when ControllerGetCapabilities is called with a ControllerGetCapabilitiesRequest", func() {
@@ -295,30 +310,29 @@ var _ = Describe("ControllerService", func() {
 	})
 })
 
-
-type DummyContext struct {}
+type DummyContext struct{}
 
 func (*DummyContext) Deadline() (deadline time.Time, ok bool) { return time.Time{}, false }
 
-func (*DummyContext) Done() <-chan struct{} {return nil}
+func (*DummyContext) Done() <-chan struct{} { return nil }
 
-func (*DummyContext) Err() (error){ return nil }
+func (*DummyContext) Err() error { return nil }
 
-func (*DummyContext) Value(key interface{}) interface{} {return nil}
+func (*DummyContext) Value(key interface{}) interface{} { return nil }
 
 func createSuccessful(ctx context.Context, cs ControllerServer, fakeOs *os_fake.FakeOs, volumeName string, vc []*VolumeCapability) *CreateVolumeResponse {
 	createResponse, err := cs.CreateVolume(ctx, &CreateVolumeRequest{
-		Version: &Version{},
-		Name: volumeName,
+		Version:            &Version{},
+		Name:               volumeName,
 		VolumeCapabilities: vc,
 	})
 	Expect(err).To(BeNil())
 	return createResponse
 }
 
-func deleteSuccessful(ctx context.Context, cs ControllerServer, volumeID *VolumeID) *DeleteVolumeResponse{
+func deleteSuccessful(ctx context.Context, cs ControllerServer, volumeID *VolumeID) *DeleteVolumeResponse {
 	deleteResponse, err := cs.DeleteVolume(ctx, &DeleteVolumeRequest{
-		Version: &Version{},
+		Version:  &Version{},
 		VolumeId: volumeID,
 	})
 	Expect(err).To(BeNil())

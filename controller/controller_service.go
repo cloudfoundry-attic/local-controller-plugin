@@ -55,20 +55,23 @@ func (cs *Controller) CreateVolume(ctx context.Context, in *CreateVolumeRequest)
 		return &CreateVolumeResponse{}, errors.New("Missing mandatory 'volume_name'")
 	}
 
+	var localVol *LocalVolume
+
+	logger.Info("creating-volume", lager.Data{"volume_name": volName, "volume_id": volName})
+
 	if _, ok = cs.volumes[volName]; !ok {
-		logger.Info("creating-volume", lager.Data{"volume_name": volName, "volume_id": volName})
-		localVol := LocalVolume{VolumeInfo: VolumeInfo{Id: &VolumeID{Values: map[string]string{"volume_name": volName}}, AccessMode: &AccessMode{Mode: AccessMode_UNKNOWN}}}
-		cs.volumes[in.Name] = &localVol
-
-		resp := &CreateVolumeResponse{Reply: &CreateVolumeResponse_Result_{
-			Result: &CreateVolumeResponse_Result{
-				VolumeInfo: &localVol.VolumeInfo,
-			}}}
-
-		logger.Info("CreateVolumeResponse", lager.Data{"resp": resp})
-		return resp, nil
+		localVol = &LocalVolume{VolumeInfo: VolumeInfo{Id: &VolumeID{Values: map[string]string{"volume_name": volName}}, AccessMode: &AccessMode{Mode: AccessMode_UNKNOWN}}}
+		cs.volumes[in.Name] = localVol
 	}
-	return &CreateVolumeResponse{}, errors.New("should not have gotten here!!!")
+	localVol = cs.volumes[volName]
+
+	resp := &CreateVolumeResponse{Reply: &CreateVolumeResponse_Result_{
+		Result: &CreateVolumeResponse_Result{
+			VolumeInfo: &localVol.VolumeInfo,
+		}}}
+
+	logger.Info("CreateVolumeResponse", lager.Data{"resp": resp})
+	return resp, nil
 }
 
 func (cs *Controller) DeleteVolume(context context.Context, request *DeleteVolumeRequest) (*DeleteVolumeResponse, error) {
@@ -106,31 +109,31 @@ func (cs *Controller) ControllerUnpublishVolume(ctx context.Context, in *Control
 }
 
 func (cs *Controller) ValidateVolumeCapabilities(ctx context.Context, in *ValidateVolumeCapabilitiesRequest) (*ValidateVolumeCapabilitiesResponse, error) {
-  for _, vc := range in.GetVolumeCapabilities() {
-    if vc.GetMount().GetFsType() != "" {
-      return &ValidateVolumeCapabilitiesResponse{
-        Reply: &ValidateVolumeCapabilitiesResponse_Result_{
-          Result: &ValidateVolumeCapabilitiesResponse_Result{
-            Supported: false,
-            Message: "Specifying FsType is unsupported.",
-          }}}, nil
-    }
-    for _, flag := range vc.GetMount().GetMountFlags() {
-      if flag != "" {
-        return &ValidateVolumeCapabilitiesResponse{
-          Reply: &ValidateVolumeCapabilitiesResponse_Result_{
-            Result: &ValidateVolumeCapabilitiesResponse_Result{
-              Supported: false,
-              Message: "Specifying mount flags is unsupported.",
-            }}}, nil
-      }
-    }
-  }
-  return &ValidateVolumeCapabilitiesResponse{
-    Reply: &ValidateVolumeCapabilitiesResponse_Result_{
-      Result: &ValidateVolumeCapabilitiesResponse_Result{
-      Supported: true,
-    }}}, nil
+	for _, vc := range in.GetVolumeCapabilities() {
+		if vc.GetMount().GetFsType() != "" {
+			return &ValidateVolumeCapabilitiesResponse{
+				Reply: &ValidateVolumeCapabilitiesResponse_Result_{
+					Result: &ValidateVolumeCapabilitiesResponse_Result{
+						Supported: false,
+						Message:   "Specifying FsType is unsupported.",
+					}}}, nil
+		}
+		for _, flag := range vc.GetMount().GetMountFlags() {
+			if flag != "" {
+				return &ValidateVolumeCapabilitiesResponse{
+					Reply: &ValidateVolumeCapabilitiesResponse_Result_{
+						Result: &ValidateVolumeCapabilitiesResponse_Result{
+							Supported: false,
+							Message:   "Specifying mount flags is unsupported.",
+						}}}, nil
+			}
+		}
+	}
+	return &ValidateVolumeCapabilitiesResponse{
+		Reply: &ValidateVolumeCapabilitiesResponse_Result_{
+			Result: &ValidateVolumeCapabilitiesResponse_Result{
+				Supported: true,
+			}}}, nil
 }
 
 func (cs *Controller) ListVolumes(ctx context.Context, in *ListVolumesRequest) (*ListVolumesResponse, error) {
