@@ -104,11 +104,17 @@ func (cs *Controller) DeleteVolume(context context.Context, request *DeleteVolum
 
 }
 func (cs *Controller) ControllerPublishVolume(ctx context.Context, in *ControllerPublishVolumeRequest) (*ControllerPublishVolumeResponse, error) {
-	return &ControllerPublishVolumeResponse{}, nil
+	return &ControllerPublishVolumeResponse{Reply: &ControllerPublishVolumeResponse_Result_{
+		Result: &ControllerPublishVolumeResponse_Result{
+			PublishVolumeInfo: &PublishVolumeInfo{},
+		},
+	}}, nil
 }
 
 func (cs *Controller) ControllerUnpublishVolume(ctx context.Context, in *ControllerUnpublishVolumeRequest) (*ControllerUnpublishVolumeResponse, error) {
-	return &ControllerUnpublishVolumeResponse{}, nil
+	return &ControllerUnpublishVolumeResponse{Reply: &ControllerUnpublishVolumeResponse_Result_{
+		Result: &ControllerUnpublishVolumeResponse_Result{},
+	}}, nil
 }
 
 func (cs *Controller) ValidateVolumeCapabilities(ctx context.Context, in *ValidateVolumeCapabilitiesRequest) (*ValidateVolumeCapabilitiesResponse, error) {

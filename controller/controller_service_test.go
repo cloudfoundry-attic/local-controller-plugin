@@ -168,6 +168,7 @@ var _ = Describe("ControllerService", func() {
 				})
 				It("should return a ControllerPublishVolumeResponse", func() {
 					Expect(*expectedResponse).NotTo(BeNil())
+					Expect(expectedResponse.GetResult().GetPublishVolumeInfo()).NotTo(BeNil())
 				})
 			})
 		})
@@ -191,6 +192,7 @@ var _ = Describe("ControllerService", func() {
 				})
 				It("should return a ControllerUnpublishVolumeResponse", func() {
 					Expect(*expectedResponse).NotTo(BeNil())
+					Expect(expectedResponse.GetResult()).NotTo(BeNil())
 				})
 			})
 		})
