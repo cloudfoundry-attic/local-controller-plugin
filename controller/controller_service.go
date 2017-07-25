@@ -79,21 +79,24 @@ func (cs *Controller) DeleteVolume(context context.Context, request *DeleteVolum
 	logger.Info("start")
 	defer logger.Info("end")
 
-	var volName string
+	var volName, errorDescription string
 	var ok bool
 
 	if volName, ok = request.GetVolumeId().GetValues()["volume_name"]; !ok {
-		logger.Error("failed-volume-deletion", fmt.Errorf("Request has no volume name"))
-		return &DeleteVolumeResponse{}, errors.New("Request missing 'volume_name'")
+		errorDescription = "Request missing 'volume_name'"
+		logger.Error("failed-volume-deletion", fmt.Errorf(errorDescription))
+		return createDeleteVolumeErrorResponse(Error_DeleteVolumeError_INVALID_VOLUME_ID, errorDescription), nil
 	}
 	if volName == "" {
-		logger.Error("failed-volume-deletion", fmt.Errorf("Request has blank volume name"))
-		return &DeleteVolumeResponse{}, errors.New("Request needs non-empty 'volume_name'")
+		errorDescription = "Request has blank volume name"
+		logger.Error("failed-volume-deletion", fmt.Errorf(errorDescription))
+		return createDeleteVolumeErrorResponse(Error_DeleteVolumeError_INVALID_VOLUME_ID, errorDescription), nil
 	}
 
 	if _, exists := cs.volumes[volName]; !exists {
-		logger.Error("failed-volume-removal", errors.New(fmt.Sprintf("Volume %s not found", volName)))
-		return createDeleteVolumeErrorResponse(Error_DeleteVolumeError_VOLUME_DOES_NOT_EXIST, fmt.Sprintf("Volume %s not found", volName)), nil
+		errorDescription = fmt.Sprintf("Volume %s not found", volName)
+		logger.Error("failed-volume-removal", errors.New(errorDescription))
+		return createDeleteVolumeErrorResponse(Error_DeleteVolumeError_VOLUME_DOES_NOT_EXIST, errorDescription), nil
 	}
 	return &DeleteVolumeResponse{Reply: &DeleteVolumeResponse_Result_{
 		Result: &DeleteVolumeResponse_Result{},
