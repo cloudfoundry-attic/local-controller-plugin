@@ -93,7 +93,7 @@ func (cs *Controller) DeleteVolume(context context.Context, request *DeleteVolum
 
 	if _, exists := cs.volumes[volName]; !exists {
 		logger.Error("failed-volume-removal", errors.New(fmt.Sprintf("Volume %s not found", volName)))
-		return &DeleteVolumeResponse{}, errors.New(fmt.Sprintf("Volume '%s' not found", volName))
+		return createDeleteVolumeErrorResponse(Error_DeleteVolumeError_VOLUME_DOES_NOT_EXIST, fmt.Sprintf("Volume %s not found", volName)), nil
 	}
 	return &DeleteVolumeResponse{Reply: &DeleteVolumeResponse_Result_{
 		Result: &DeleteVolumeResponse_Result{},
@@ -173,6 +173,17 @@ func createCreateVolumeErrorResponse(errorCode Error_CreateVolumeError_CreateVol
 			Error: &Error{
 				Value: &Error_CreateVolumeError_{
 					CreateVolumeError: &Error_CreateVolumeError{
+						ErrorCode:        errorCode,
+						ErrorDescription: errorDescription,
+					}}}}}
+}
+
+func createDeleteVolumeErrorResponse(errorCode Error_DeleteVolumeError_DeleteVolumeErrorCode, errorDescription string) *DeleteVolumeResponse {
+	return &DeleteVolumeResponse{
+		Reply: &DeleteVolumeResponse_Error{
+			Error: &Error{
+				Value: &Error_DeleteVolumeError_{
+					DeleteVolumeError: &Error_DeleteVolumeError{
 						ErrorCode:        errorCode,
 						ErrorDescription: errorDescription,
 					}}}}}

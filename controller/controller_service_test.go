@@ -102,6 +102,10 @@ var _ = Describe("ControllerService", func() {
 		})
 
 		Describe("DeleteVolume", func() {
+			var (
+				deleteVolResponse *DeleteVolumeResponse
+			)
+
 			It("should fail if no volume ID is provided in the request", func() {
 				_, err = cs.DeleteVolume(context, &DeleteVolumeRequest{})
 				Expect(err.Error()).To(Equal("Request missing 'volume_name'"))
@@ -115,10 +119,12 @@ var _ = Describe("ControllerService", func() {
 			})
 
 			It("should fail if no volume was found", func() {
-				_, err = cs.DeleteVolume(context, &DeleteVolumeRequest{
+				deleteVolResponse, err = cs.DeleteVolume(context, &DeleteVolumeRequest{
 					VolumeId: &VolumeID{Values: map[string]string{"volume_name": volumeName}},
 				})
-				Expect(err.Error()).To(Equal("Volume '" + volumeName + "' not found"))
+				Expect(err).To(BeNil())
+				Expect(deleteVolResponse.GetError()).NotTo(BeNil())
+				Expect(deleteVolResponse.GetError().GetDeleteVolumeError().GetErrorCode()).To(Equal(Error_DeleteVolumeError_VOLUME_DOES_NOT_EXIST))
 			})
 
 			Context("when the volume has been created", func() {
