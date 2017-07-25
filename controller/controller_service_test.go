@@ -76,6 +76,29 @@ var _ = Describe("ControllerService", func() {
 					}))
 				})
 			})
+
+			Context("when the request is invalid (no volume name)", func() {
+				var (
+					err            error
+					createVolReq   *CreateVolumeRequest
+					createResponse *CreateVolumeResponse
+				)
+				BeforeEach(func() {
+					createVolReq = &CreateVolumeRequest{
+						Version:            &Version{},
+						Name:               "",
+						VolumeCapabilities: vc,
+					}
+				})
+				JustBeforeEach(func() {
+					createResponse, err = cs.CreateVolume(context, createVolReq)
+				})
+				It("should fail with an error response", func() {
+					Expect(err).To(BeNil())
+					Expect(createResponse.GetError()).NotTo(BeNil())
+					Expect(createResponse.GetError().GetCreateVolumeError().GetErrorCode()).To(Equal(Error_CreateVolumeError_INVALID_VOLUME_NAME))
+				})
+			})
 		})
 
 		Describe("DeleteVolume", func() {

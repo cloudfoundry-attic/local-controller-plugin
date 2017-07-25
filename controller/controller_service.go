@@ -52,7 +52,7 @@ func (cs *Controller) CreateVolume(ctx context.Context, in *CreateVolumeRequest)
 	var volName string = in.GetName()
 	var ok bool
 	if volName == "" {
-		return &CreateVolumeResponse{}, errors.New("Missing mandatory 'volume_name'")
+		return createCreateVolumeErrorResponse(Error_CreateVolumeError_INVALID_VOLUME_NAME, "Volume name not supplied"), nil
 	}
 
 	var localVol *LocalVolume
@@ -165,4 +165,15 @@ func (cs *Controller) volumePath(logger lager.Logger, volumeId string) string {
 	cs.os.MkdirAll(volumesPathRoot, os.ModePerm)
 
 	return filepath.Join(volumesPathRoot, volumeId)
+}
+
+func createCreateVolumeErrorResponse(errorCode Error_CreateVolumeError_CreateVolumeErrorCode, errorDescription string) *CreateVolumeResponse {
+	return &CreateVolumeResponse{
+		Reply: &CreateVolumeResponse_Error{
+			Error: &Error{
+				Value: &Error_CreateVolumeError_{
+					CreateVolumeError: &Error_CreateVolumeError{
+						ErrorCode:        errorCode,
+						ErrorDescription: errorDescription,
+					}}}}}
 }
