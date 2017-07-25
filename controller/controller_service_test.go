@@ -339,8 +339,11 @@ var _ = Describe("ControllerService", func() {
 				It("should return a ControllerGetCapabilitiesResponse with only CREATE_DELETE_VOLUME specified", func() {
 					Expect(expectedResponse).NotTo(BeNil())
 					capabilities := expectedResponse.GetResult().GetCapabilities()
-					Expect(capabilities).To(HaveLen(1))
+					Expect(capabilities).To(HaveLen(4))
 					Expect(capabilities[0].GetRpc().GetType()).To(Equal(ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME))
+					Expect(capabilities[1].GetRpc().GetType()).To(Equal(ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME))
+					Expect(capabilities[2].GetRpc().GetType()).To(Equal(ControllerServiceCapability_RPC_LIST_VOLUMES))
+					Expect(capabilities[3].GetRpc().GetType()).To(Equal(ControllerServiceCapability_RPC_GET_CAPACITY))
 				})
 			})
 		})

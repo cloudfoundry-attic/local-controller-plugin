@@ -162,10 +162,37 @@ func (cs *Controller) GetCapacity(ctx context.Context, in *GetCapacityRequest) (
 func (cs *Controller) ControllerGetCapabilities(ctx context.Context, in *ControllerGetCapabilitiesRequest) (*ControllerGetCapabilitiesResponse, error) {
 	return &ControllerGetCapabilitiesResponse{Reply: &ControllerGetCapabilitiesResponse_Result_{
 		Result: &ControllerGetCapabilitiesResponse_Result{
-			Capabilities: []*ControllerServiceCapability{{
-				Type: &ControllerServiceCapability_Rpc{
-					Rpc: &ControllerServiceCapability_RPC{
-						Type: ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME}}}}}}}, nil
+			Capabilities: []*ControllerServiceCapability{
+				{
+					Type: &ControllerServiceCapability_Rpc{
+						Rpc: &ControllerServiceCapability_RPC{
+							Type: ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
+						},
+					},
+				},
+				{
+					Type: &ControllerServiceCapability_Rpc{
+						Rpc: &ControllerServiceCapability_RPC{
+							Type: ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
+						},
+					},
+				},
+				{
+					Type: &ControllerServiceCapability_Rpc{
+						Rpc: &ControllerServiceCapability_RPC{
+							Type: ControllerServiceCapability_RPC_LIST_VOLUMES,
+						},
+					},
+				},
+				{
+					Type: &ControllerServiceCapability_Rpc{
+						Rpc: &ControllerServiceCapability_RPC{
+							Type: ControllerServiceCapability_RPC_GET_CAPACITY,
+						},
+					},
+				},
+			},
+		}}}, nil
 }
 
 func (cs *Controller) volumePath(logger lager.Logger, volumeId string) string {
