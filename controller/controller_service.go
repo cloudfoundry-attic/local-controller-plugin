@@ -150,7 +150,13 @@ func (cs *Controller) ListVolumes(ctx context.Context, in *ListVolumesRequest) (
 }
 
 func (cs *Controller) GetCapacity(ctx context.Context, in *GetCapacityRequest) (*GetCapacityResponse, error) {
-	return &GetCapacityResponse{}, nil
+	return &GetCapacityResponse{
+		Reply: &GetCapacityResponse_Result_{
+			Result: &GetCapacityResponse_Result{
+				TotalCapacity: ^uint64(0),
+			},
+		},
+	}, nil
 }
 
 func (cs *Controller) ControllerGetCapabilities(ctx context.Context, in *ControllerGetCapabilitiesRequest) (*ControllerGetCapabilitiesResponse, error) {

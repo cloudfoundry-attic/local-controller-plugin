@@ -315,6 +315,8 @@ var _ = Describe("ControllerService", func() {
 				})
 				It("should return a GetCapacityResponse", func() {
 					Expect(*expectedResponse).NotTo(BeNil())
+					Expect(expectedResponse.GetResult()).NotTo(BeNil())
+					Expect(expectedResponse.GetResult().GetTotalCapacity()).NotTo(BeNil())
 				})
 			})
 		})
