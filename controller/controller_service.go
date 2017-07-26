@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -93,13 +92,8 @@ func (cs *Controller) DeleteVolume(context context.Context, request *DeleteVolum
 		return createDeleteVolumeErrorResponse(Error_DeleteVolumeError_INVALID_VOLUME_ID, errorDescription), nil
 	}
 
-	if _, exists := cs.volumes[volName]; !exists {
-		errorDescription = fmt.Sprintf("Volume %s not found", volName)
-		logger.Error("failed-volume-removal", errors.New(errorDescription))
-		return createDeleteVolumeErrorResponse(Error_DeleteVolumeError_VOLUME_DOES_NOT_EXIST, errorDescription), nil
-	} else {
-		delete(cs.volumes, volName)
-	}
+	delete(cs.volumes, volName)
+
 	return &DeleteVolumeResponse{Reply: &DeleteVolumeResponse_Result_{
 		Result: &DeleteVolumeResponse_Result{},
 	}}, nil

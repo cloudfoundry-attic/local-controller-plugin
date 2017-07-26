@@ -135,8 +135,8 @@ var _ = Describe("ControllerService", func() {
 					VolumeId: &VolumeID{Values: map[string]string{"volume_name": "non-existent-volume"}},
 				})
 				Expect(err).To(BeNil())
-				Expect(deleteVolResponse.GetError()).NotTo(BeNil())
-				Expect(deleteVolResponse.GetError().GetDeleteVolumeError().GetErrorCode()).To(Equal(Error_DeleteVolumeError_VOLUME_DOES_NOT_EXIST))
+				Expect(deleteVolResponse.GetError()).To(BeNil())
+				Expect(deleteVolResponse.GetResult()).NotTo(BeNil())
 			})
 
 			Context("when the volume has been created", func() {
@@ -212,6 +212,15 @@ var _ = Describe("ControllerService", func() {
 				It("should return a ControllerUnpublishVolumeResponse", func() {
 					Expect(*expectedResponse).NotTo(BeNil())
 					Expect(expectedResponse.GetResult()).NotTo(BeNil())
+				})
+				Context("when a volume is unpublished for a second time", func() {
+					JustBeforeEach(func() {
+						expectedResponse, err = cs.ControllerUnpublishVolume(context, request)
+					})
+					It("should return a ControllerUnpublishVolumeResponse", func() {
+						Expect(*expectedResponse).NotTo(BeNil())
+						Expect(expectedResponse.GetResult()).NotTo(BeNil())
+					})
 				})
 			})
 		})
