@@ -9,8 +9,15 @@ import (
 	"github.com/jeffpak/local-controller-plugin/controller"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/types"
 	"golang.org/x/net/context"
 )
+
+func VolumeIDMatcher(volID *VolumeID) GomegaMatcher {
+	return WithTransform(func(entry *ListVolumesResponse_Result_Entry) *VolumeID {
+		return entry.GetVolumeInfo().GetId()
+	}, Equal(volID))
+}
 
 var _ = Describe("ControllerService", func() {
 	var (
@@ -102,8 +109,9 @@ var _ = Describe("ControllerService", func() {
 		Describe("DeleteVolume", func() {
 			var (
 				deleteVolResponse *DeleteVolumeResponse
-				listReq           *ListVolumesRequest
-				listResp          *ListVolumesResponse
+
+				listReq  *ListVolumesRequest
+				listResp *ListVolumesResponse
 			)
 
 			It("should fail if no volume ID is provided in the request", func() {
@@ -132,8 +140,11 @@ var _ = Describe("ControllerService", func() {
 			})
 
 			Context("when the volume has been created", func() {
+				var (
+					createVolResponse *CreateVolumeResponse
+				)
 				BeforeEach(func() {
-					createSuccessful(context, cs, fakeOs, volumeName, vc)
+					createVolResponse = createSuccessful(context, cs, fakeOs, volumeName, vc)
 				})
 
 				It("should delete the volume", func() {
@@ -145,19 +156,12 @@ var _ = Describe("ControllerService", func() {
 						Version:    &Version{Major: 0, Minor: 0, Patch: 1},
 						MaxEntries: 100,
 					}
+
 					listResp, err = cs.ListVolumes(context, listReq)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(listResp).NotTo(BeNil())
-					var found = false
-					entries := listResp.GetResult().GetEntries()
-					for _, entry := range entries {
-						if name, ok := entry.GetVolumeInfo().GetId().Values["volume_name"]; ok {
-							if name == volID.GetValues()["volume_name"] {
-								found = true
-							}
-						}
-					}
-					Expect(found).To(Equal(false))
+					volID := createVolResponse.GetResult().GetVolumeInfo().GetId()
+					Expect(listResp.GetResult().GetEntries()).NotTo(ContainElement(VolumeIDMatcher(volID)))
 				})
 			})
 		})
@@ -310,7 +314,7 @@ var _ = Describe("ControllerService", func() {
 			It("should return a response listing that volume", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(expectedResponse).NotTo(BeNil())
-				Expect(expectedResponse.GetResult().GetEntries()).To(HaveLen(1))
+				Expect(expectedResponse.GetResult().GetEntries()).To(ContainElement(VolumeIDMatcher(volID)))
 			})
 		})
 
