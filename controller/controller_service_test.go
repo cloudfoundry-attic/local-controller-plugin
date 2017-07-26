@@ -46,12 +46,26 @@ var _ = Describe("ControllerService", func() {
 			expectedResponse *CreateVolumeResponse
 		)
 
-		Context("when CreateVolume is called with a CreateVolumeRequest", func() {
+		BeforeEach(func() {
+			expectedResponse = createSuccessful(context, cs, fakeOs, volumeName, vc)
+		})
+
+		It("does not fail", func() {
+			Expect(*expectedResponse).To(Equal(CreateVolumeResponse{
+				Reply: &CreateVolumeResponse_Result_{
+					Result: &CreateVolumeResponse_Result{
+						VolumeInfo: volInfo,
+					},
+				},
+			}))
+		})
+
+		Context("when the Volume exists", func() {
 			BeforeEach(func() {
 				expectedResponse = createSuccessful(context, cs, fakeOs, volumeName, vc)
 			})
 
-			It("does not fail", func() {
+			It("should succeed and respond with the existent volume", func() {
 				Expect(*expectedResponse).To(Equal(CreateVolumeResponse{
 					Reply: &CreateVolumeResponse_Result_{
 						Result: &CreateVolumeResponse_Result{
@@ -60,50 +74,36 @@ var _ = Describe("ControllerService", func() {
 					},
 				}))
 			})
+		})
 
-			Context("when the Volume exists", func() {
-				BeforeEach(func() {
-					expectedResponse = createSuccessful(context, cs, fakeOs, volumeName, vc)
-				})
-
-				It("should succeed and respond with the existent volume", func() {
-					Expect(*expectedResponse).To(Equal(CreateVolumeResponse{
-						Reply: &CreateVolumeResponse_Result_{
-							Result: &CreateVolumeResponse_Result{
-								VolumeInfo: volInfo,
-							},
-						},
-					}))
-				})
+		Context("when the request is invalid (no volume name)", func() {
+			var (
+				err            error
+				createVolReq   *CreateVolumeRequest
+				createResponse *CreateVolumeResponse
+			)
+			BeforeEach(func() {
+				createVolReq = &CreateVolumeRequest{
+					Version:            &Version{},
+					Name:               "",
+					VolumeCapabilities: vc,
+				}
 			})
-
-			Context("when the request is invalid (no volume name)", func() {
-				var (
-					err            error
-					createVolReq   *CreateVolumeRequest
-					createResponse *CreateVolumeResponse
-				)
-				BeforeEach(func() {
-					createVolReq = &CreateVolumeRequest{
-						Version:            &Version{},
-						Name:               "",
-						VolumeCapabilities: vc,
-					}
-				})
-				JustBeforeEach(func() {
-					createResponse, err = cs.CreateVolume(context, createVolReq)
-				})
-				It("should fail with an error response", func() {
-					Expect(err).To(BeNil())
-					Expect(createResponse.GetError()).NotTo(BeNil())
-					Expect(createResponse.GetError().GetCreateVolumeError().GetErrorCode()).To(Equal(Error_CreateVolumeError_INVALID_VOLUME_NAME))
-				})
+			JustBeforeEach(func() {
+				createResponse, err = cs.CreateVolume(context, createVolReq)
+			})
+			It("should fail with an error response", func() {
+				Expect(err).To(BeNil())
+				Expect(createResponse.GetError()).NotTo(BeNil())
+				Expect(createResponse.GetError().GetCreateVolumeError().GetErrorCode()).To(Equal(Error_CreateVolumeError_INVALID_VOLUME_NAME))
 			})
 		})
 
 		Describe("DeleteVolume", func() {
 			var (
 				deleteVolResponse *DeleteVolumeResponse
+				listReq           *ListVolumesRequest
+				listResp          *ListVolumesResponse
 			)
 
 			It("should fail if no volume ID is provided in the request", func() {
@@ -124,7 +124,7 @@ var _ = Describe("ControllerService", func() {
 
 			It("should fail if no volume was found", func() {
 				deleteVolResponse, err = cs.DeleteVolume(context, &DeleteVolumeRequest{
-					VolumeId: &VolumeID{Values: map[string]string{"volume_name": volumeName}},
+					VolumeId: &VolumeID{Values: map[string]string{"volume_name": "non-existent-volume"}},
 				})
 				Expect(err).To(BeNil())
 				Expect(deleteVolResponse.GetError()).NotTo(BeNil())
@@ -136,13 +136,28 @@ var _ = Describe("ControllerService", func() {
 					createSuccessful(context, cs, fakeOs, volumeName, vc)
 				})
 
-				It("does not fail", func() {
+				It("should delete the volume", func() {
 					response := deleteSuccessful(context, cs, volID)
-					Expect(response).To(Equal(&DeleteVolumeResponse{
-						Reply: &DeleteVolumeResponse_Result_{
-							Result: &DeleteVolumeResponse_Result{},
-						},
-					}))
+					Expect(response).NotTo(BeNil())
+					Expect(response.GetResult()).NotTo(BeNil())
+
+					listReq = &ListVolumesRequest{
+						Version:    &Version{Major: 0, Minor: 0, Patch: 1},
+						MaxEntries: 100,
+					}
+					listResp, err = cs.ListVolumes(context, listReq)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(listResp).NotTo(BeNil())
+					var found = false
+					entries := listResp.GetResult().GetEntries()
+					for _, entry := range entries {
+						if name, ok := entry.GetVolumeInfo().GetId().Values["volume_name"]; ok {
+							if name == volID.GetValues()["volume_name"] {
+								found = true
+							}
+						}
+					}
+					Expect(found).To(Equal(false))
 				})
 			})
 		})
@@ -277,25 +292,25 @@ var _ = Describe("ControllerService", func() {
 			})
 		})
 
-		Describe("ListVolumes", func() {
+		Describe("when volumes are listed", func() {
 			var (
 				request          *ListVolumesRequest
 				expectedResponse *ListVolumesResponse
 			)
-			Context("when ListVolumes is called with a ListVolumesRequest", func() {
-				BeforeEach(func() {
-					request = &ListVolumesRequest{
-						&Version{Major: 0, Minor: 0, Patch: 1},
-						10,
-						"starting-token",
-					}
-				})
-				JustBeforeEach(func() {
-					expectedResponse, err = cs.ListVolumes(context, request)
-				})
-				It("should return a ListVolumesResponse", func() {
-					Expect(*expectedResponse).NotTo(BeNil())
-				})
+
+			JustBeforeEach(func() {
+				request = &ListVolumesRequest{
+					&Version{Major: 0, Minor: 0, Patch: 1},
+					10,
+					"starting-token",
+				}
+				expectedResponse, err = cs.ListVolumes(context, request)
+			})
+
+			It("should return a response listing that volume", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(expectedResponse).NotTo(BeNil())
+				Expect(expectedResponse.GetResult().GetEntries()).To(HaveLen(1))
 			})
 		})
 
@@ -336,7 +351,7 @@ var _ = Describe("ControllerService", func() {
 					expectedResponse, err = cs.ControllerGetCapabilities(context, request)
 				})
 
-				It("should return a ControllerGetCapabilitiesResponse with only CREATE_DELETE_VOLUME specified", func() {
+				It("should return a listing all capabilities", func() {
 					Expect(expectedResponse).NotTo(BeNil())
 					capabilities := expectedResponse.GetResult().GetCapabilities()
 					Expect(capabilities).To(HaveLen(4))

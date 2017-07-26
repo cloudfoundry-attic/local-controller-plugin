@@ -97,6 +97,8 @@ func (cs *Controller) DeleteVolume(context context.Context, request *DeleteVolum
 		errorDescription = fmt.Sprintf("Volume %s not found", volName)
 		logger.Error("failed-volume-removal", errors.New(errorDescription))
 		return createDeleteVolumeErrorResponse(Error_DeleteVolumeError_VOLUME_DOES_NOT_EXIST, errorDescription), nil
+	} else {
+		delete(cs.volumes, volName)
 	}
 	return &DeleteVolumeResponse{Reply: &DeleteVolumeResponse_Result_{
 		Result: &DeleteVolumeResponse_Result{},
@@ -146,7 +148,22 @@ func (cs *Controller) ValidateVolumeCapabilities(ctx context.Context, in *Valida
 }
 
 func (cs *Controller) ListVolumes(ctx context.Context, in *ListVolumesRequest) (*ListVolumesResponse, error) {
-	return &ListVolumesResponse{}, nil
+	var volList []*ListVolumesResponse_Result_Entry
+
+	for _, v := range cs.volumes {
+		entry := &ListVolumesResponse_Result_Entry{
+			VolumeInfo: &v.VolumeInfo,
+		}
+		volList = append(volList, entry)
+	}
+
+	return &ListVolumesResponse{
+		Reply: &ListVolumesResponse_Result_{
+			Result: &ListVolumesResponse_Result{
+				Entries: volList,
+			},
+		},
+	}, nil
 }
 
 func (cs *Controller) GetCapacity(ctx context.Context, in *GetCapacityRequest) (*GetCapacityResponse, error) {
