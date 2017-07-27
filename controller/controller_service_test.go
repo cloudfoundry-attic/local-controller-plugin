@@ -5,7 +5,7 @@ import (
 
 	"code.cloudfoundry.org/goshims/filepathshim/filepath_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
-	. "github.com/jeffpak/csi"
+	. "github.com/container-storage-interface/spec"
 	"github.com/jeffpak/local-controller-plugin/controller"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

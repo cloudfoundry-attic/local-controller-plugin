@@ -7,7 +7,7 @@ import (
 	"code.cloudfoundry.org/goshims/filepathshim"
 	"code.cloudfoundry.org/goshims/osshim"
 
-	csi "github.com/jeffpak/csi"
+	csi "github.com/container-storage-interface/spec"
 	"github.com/jeffpak/local-controller-plugin/controller"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
