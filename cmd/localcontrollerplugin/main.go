@@ -11,6 +11,7 @@ import (
 	"github.com/jeffpak/local-controller-plugin/controller"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grpc_server"
+	"github.com/tedsuo/ifrit/sigmon"
 )
 
 const (
@@ -25,7 +26,7 @@ func main() {
 	controller := controller.NewController(&osshim.OsShim{}, &filepathshim.FilepathShim{}, "")
 	server := grpc_server.NewGRPCServer(listenAddress, nil, controller, RegisterControllerServer)
 
-	monitor := ifrit.Invoke(server)
+	monitor := ifrit.Invoke(sigmon.New(server))
 	log.Println("Started")
 
 	err := <-monitor.Wait()
