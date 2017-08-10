@@ -5,11 +5,11 @@ import (
 
 	"code.cloudfoundry.org/goshims/filepathshim/filepath_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
-	. "github.com/container-storage-interface/spec"
 	"github.com/jeffpak/local-controller-plugin/controller"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/types"
+	. "github.com/paulcwarren/spec"
 	"golang.org/x/net/context"
 )
 

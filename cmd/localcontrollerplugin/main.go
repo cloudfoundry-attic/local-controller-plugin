@@ -7,8 +7,8 @@ import (
 	"code.cloudfoundry.org/goshims/filepathshim"
 	"code.cloudfoundry.org/goshims/osshim"
 
-	. "github.com/container-storage-interface/spec"
 	"github.com/jeffpak/local-controller-plugin/controller"
+	. "github.com/paulcwarren/spec"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grpc_server"
 	"github.com/tedsuo/ifrit/sigmon"
