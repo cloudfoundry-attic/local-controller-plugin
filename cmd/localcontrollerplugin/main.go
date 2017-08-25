@@ -1,11 +1,14 @@
 package main
 
 import (
-	"fmt"
+	"flag"
 	"log"
+	"os"
 
+	cf_lager "code.cloudfoundry.org/cflager"
 	"code.cloudfoundry.org/goshims/filepathshim"
 	"code.cloudfoundry.org/goshims/osshim"
+	"code.cloudfoundry.org/lager"
 
 	"github.com/jeffpak/local-controller-plugin/controller"
 	. "github.com/paulcwarren/spec"
@@ -14,14 +17,22 @@ import (
 	"github.com/tedsuo/ifrit/sigmon"
 )
 
-const (
-	port = 50051
+var atAddress = flag.String(
+	"listenAddr",
+	"0.0.0.0:50051",
+	"host:port to serve on",
 )
 
 ////CreateVolume will have been defined under controller.
 
 func main() {
-	listenAddress := fmt.Sprintf("0.0.0.0:%d", port)
+	parseCommandLine()
+
+	logger := lager.NewLogger("local-contoller-plugin")
+	sink := lager.NewReconfigurableSink(lager.NewWriterSink(os.Stdout, lager.DEBUG), lager.DEBUG)
+	logger.RegisterSink(sink)
+
+	listenAddress := *atAddress
 
 	controller := controller.NewController(&osshim.OsShim{}, &filepathshim.FilepathShim{}, "")
 	server := grpc_server.NewGRPCServer(listenAddress, nil, controller, RegisterControllerServer)
@@ -34,4 +45,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("exited-with-failure: %v", err)
 	}
+}
+
+func parseCommandLine() {
+	cf_lager.AddFlags(flag.CommandLine)
+	flag.Parse()
 }
