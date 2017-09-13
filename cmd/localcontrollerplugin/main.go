@@ -11,7 +11,7 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"github.com/jeffpak/local-controller-plugin/controller"
-	. "github.com/paulcwarren/spec"
+	. "github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grpc_server"
 	"github.com/tedsuo/ifrit/sigmon"

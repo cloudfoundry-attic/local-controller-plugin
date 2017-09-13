@@ -5,17 +5,17 @@ import (
 
 	"code.cloudfoundry.org/goshims/filepathshim/filepath_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
+	. "github.com/container-storage-interface/spec/lib/go/csi"
 	"github.com/jeffpak/local-controller-plugin/controller"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/types"
-	. "github.com/paulcwarren/spec"
 	"golang.org/x/net/context"
 )
 
-func VolumeIDMatcher(volID *VolumeID) GomegaMatcher {
-	return WithTransform(func(entry *ListVolumesResponse_Result_Entry) *VolumeID {
-		return entry.GetVolumeInfo().GetId()
+func VolumeIDMatcher(volID string) GomegaMatcher {
+	return WithTransform(func(entry *ListVolumesResponse_Result_Entry) string {
+		return entry.GetVolumeInfo().GetHandle().GetId()
 	}, Equal(volID))
 }
 
@@ -28,7 +28,7 @@ var _ = Describe("ControllerService", func() {
 		fakeFilepath *filepath_fake.FakeFilepath
 		mountDir     string
 		volumeName   string
-		volID        *VolumeID
+		volumeHandle *VolumeHandle
 		vc           []*VolumeCapability
 		volInfo      *VolumeInfo
 		err          error
@@ -40,12 +40,10 @@ var _ = Describe("ControllerService", func() {
 		fakeFilepath = &filepath_fake.FakeFilepath{}
 		cs = controller.NewController(fakeOs, fakeFilepath, mountDir)
 		context = &DummyContext{}
-		volID = &VolumeID{Values: map[string]string{"volume_name": "vol-name"}}
+		volumeHandle = &VolumeHandle{Id: "vol-name"}
 		volumeName = "vol-name"
-		vc = []*VolumeCapability{{Value: &VolumeCapability_Mount{Mount: &VolumeCapability_MountVolume{}}}}
-		volInfo = &VolumeInfo{
-			AccessMode: &AccessMode{Mode: AccessMode_UNKNOWN},
-			Id:         volID}
+		vc = []*VolumeCapability{{AccessType: &VolumeCapability_Mount{Mount: &VolumeCapability_MountVolume{}}}}
+		volInfo = &VolumeInfo{Handle: volumeHandle}
 	})
 
 	Describe("CreateVolume", func() {
@@ -114,25 +112,25 @@ var _ = Describe("ControllerService", func() {
 				listResp *ListVolumesResponse
 			)
 
-			It("should fail if no volume ID is provided in the request", func() {
+			It("should fail if no volume handle is provided in the request", func() {
 				deleteVolResponse, err = cs.DeleteVolume(context, &DeleteVolumeRequest{})
 				Expect(err).To(BeNil())
 				Expect(deleteVolResponse.GetError()).NotTo(BeNil())
-				Expect(deleteVolResponse.GetError().GetDeleteVolumeError().GetErrorCode()).To(Equal(Error_DeleteVolumeError_INVALID_VOLUME_ID))
+				Expect(deleteVolResponse.GetError().GetDeleteVolumeError().GetErrorCode()).To(Equal(Error_DeleteVolumeError_INVALID_VOLUME_HANDLE))
 			})
 
-			It("should fail if volume name is empty", func() {
+			It("should fail if volume ID is empty", func() {
 				deleteVolResponse, err = cs.DeleteVolume(context, &DeleteVolumeRequest{
-					VolumeId: &VolumeID{Values: map[string]string{"volume_name": ""}},
+					VolumeHandle: &VolumeHandle{Id: ""},
 				})
 				Expect(err).To(BeNil())
 				Expect(deleteVolResponse.GetError()).NotTo(BeNil())
-				Expect(deleteVolResponse.GetError().GetDeleteVolumeError().GetErrorCode()).To(Equal(Error_DeleteVolumeError_INVALID_VOLUME_ID))
+				Expect(deleteVolResponse.GetError().GetDeleteVolumeError().GetErrorCode()).To(Equal(Error_DeleteVolumeError_INVALID_VOLUME_HANDLE))
 			})
 
 			It("should fail if no volume was found", func() {
 				deleteVolResponse, err = cs.DeleteVolume(context, &DeleteVolumeRequest{
-					VolumeId: &VolumeID{Values: map[string]string{"volume_name": "non-existent-volume"}},
+					VolumeHandle: &VolumeHandle{Id: "non-existent-volume"},
 				})
 				Expect(err).To(BeNil())
 				Expect(deleteVolResponse.GetError()).To(BeNil())
@@ -148,7 +146,7 @@ var _ = Describe("ControllerService", func() {
 				})
 
 				It("should delete the volume", func() {
-					response := deleteSuccessful(context, cs, volID)
+					response := deleteSuccessful(context, cs, volumeHandle)
 					Expect(response).NotTo(BeNil())
 					Expect(response.GetResult()).NotTo(BeNil())
 
@@ -160,7 +158,7 @@ var _ = Describe("ControllerService", func() {
 					listResp, err = cs.ListVolumes(context, listReq)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(listResp).NotTo(BeNil())
-					volID := createVolResponse.GetResult().GetVolumeInfo().GetId()
+					volID := createVolResponse.GetResult().GetVolumeInfo().GetHandle().GetId()
 					Expect(listResp.GetResult().GetEntries()).NotTo(ContainElement(VolumeIDMatcher(volID)))
 				})
 			})
@@ -176,10 +174,11 @@ var _ = Describe("ControllerService", func() {
 				BeforeEach(func() {
 					request = &ControllerPublishVolumeRequest{
 						&Version{Major: 0, Minor: 0, Patch: 1},
-						volID,
-						&VolumeMetadata{Values: map[string]string{}},
+						volumeHandle,
 						&NodeID{Values: map[string]string{}},
+						vc[0],
 						false,
+						nil,
 					}
 				})
 				JustBeforeEach(func() {
@@ -201,9 +200,9 @@ var _ = Describe("ControllerService", func() {
 				BeforeEach(func() {
 					request = &ControllerUnpublishVolumeRequest{
 						&Version{Major: 0, Minor: 0, Patch: 1},
-						volID,
-						&VolumeMetadata{Values: map[string]string{}},
+						volumeHandle,
 						&NodeID{Values: map[string]string{}},
+						nil,
 					}
 				})
 				JustBeforeEach(func() {
@@ -235,7 +234,7 @@ var _ = Describe("ControllerService", func() {
 					request = &ValidateVolumeCapabilitiesRequest{
 						&Version{Major: 0, Minor: 0, Patch: 1},
 						volInfo,
-						[]*VolumeCapability{{Value: &VolumeCapability_Mount{
+						[]*VolumeCapability{{AccessType: &VolumeCapability_Mount{
 							Mount: &VolumeCapability_MountVolume{
 								MountFlags: []string{""},
 							}}}}}
@@ -257,7 +256,7 @@ var _ = Describe("ControllerService", func() {
 					request = &ValidateVolumeCapabilitiesRequest{
 						&Version{Major: 0, Minor: 0, Patch: 1},
 						volInfo,
-						[]*VolumeCapability{{Value: &VolumeCapability_Mount{
+						[]*VolumeCapability{{AccessType: &VolumeCapability_Mount{
 							Mount: &VolumeCapability_MountVolume{
 								FsType: "unsupported",
 							}}}},
@@ -283,7 +282,7 @@ var _ = Describe("ControllerService", func() {
 					request = &ValidateVolumeCapabilitiesRequest{
 						&Version{Major: 0, Minor: 0, Patch: 1},
 						volInfo,
-						[]*VolumeCapability{{Value: &VolumeCapability_Mount{
+						[]*VolumeCapability{{AccessType: &VolumeCapability_Mount{
 							Mount: &VolumeCapability_MountVolume{
 								MountFlags: []string{"unsupported"},
 							}}}},
@@ -323,7 +322,7 @@ var _ = Describe("ControllerService", func() {
 			It("should return a response listing that volume", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(expectedResponse).NotTo(BeNil())
-				Expect(expectedResponse.GetResult().GetEntries()).To(ContainElement(VolumeIDMatcher(volID)))
+				Expect(expectedResponse.GetResult().GetEntries()).To(ContainElement(VolumeIDMatcher(volumeHandle.GetId())))
 			})
 		})
 
@@ -336,6 +335,8 @@ var _ = Describe("ControllerService", func() {
 				BeforeEach(func() {
 					request = &GetCapacityRequest{
 						&Version{Major: 0, Minor: 0, Patch: 1},
+						vc,
+						nil,
 					}
 				})
 				JustBeforeEach(func() {
@@ -344,7 +345,7 @@ var _ = Describe("ControllerService", func() {
 				It("should return a GetCapacityResponse", func() {
 					Expect(*expectedResponse).NotTo(BeNil())
 					Expect(expectedResponse.GetResult()).NotTo(BeNil())
-					Expect(expectedResponse.GetResult().GetTotalCapacity()).NotTo(BeNil())
+					Expect(expectedResponse.GetResult().GetAvailableCapacity()).NotTo(BeNil())
 				})
 			})
 		})
@@ -398,10 +399,10 @@ func createSuccessful(ctx context.Context, cs ControllerServer, fakeOs *os_fake.
 	return createResponse
 }
 
-func deleteSuccessful(ctx context.Context, cs ControllerServer, volumeID *VolumeID) *DeleteVolumeResponse {
+func deleteSuccessful(ctx context.Context, cs ControllerServer, volumeHandle *VolumeHandle) *DeleteVolumeResponse {
 	deleteResponse, err := cs.DeleteVolume(ctx, &DeleteVolumeRequest{
 		Version:  &Version{},
-		VolumeId: volumeID,
+		VolumeHandle: volumeHandle,
 	})
 	Expect(err).To(BeNil())
 	return deleteResponse

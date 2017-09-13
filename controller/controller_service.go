@@ -9,7 +9,7 @@ import (
 	"code.cloudfoundry.org/goshims/filepathshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
-	. "github.com/paulcwarren/spec"
+	. "github.com/container-storage-interface/spec/lib/go/csi"
 	"golang.org/x/net/context"
 )
 
@@ -48,21 +48,21 @@ func (cs *Controller) CreateVolume(ctx context.Context, in *CreateVolumeRequest)
 	logger.Info("start")
 	defer logger.Info("end")
 
-	var volName string = in.GetName()
+	var volId string = in.GetName()
 	var ok bool
-	if volName == "" {
+	if volId == "" {
 		return createCreateVolumeErrorResponse(Error_CreateVolumeError_INVALID_VOLUME_NAME, "Volume name not supplied"), nil
 	}
 
 	var localVol *LocalVolume
 
-	logger.Info("creating-volume", lager.Data{"volume_name": volName, "volume_id": volName})
+	logger.Info("creating-volume", lager.Data{"volume_name": volId, "volume_id": volId})
 
-	if _, ok = cs.volumes[volName]; !ok {
-		localVol = &LocalVolume{VolumeInfo: VolumeInfo{Id: &VolumeID{Values: map[string]string{"volume_name": volName}}, AccessMode: &AccessMode{Mode: AccessMode_UNKNOWN}}}
+	if _, ok = cs.volumes[volId]; !ok {
+		localVol = &LocalVolume{VolumeInfo: VolumeInfo{Handle: &VolumeHandle{Id: volId}}}
 		cs.volumes[in.Name] = localVol
 	}
-	localVol = cs.volumes[volName]
+	localVol = cs.volumes[volId]
 
 	resp := &CreateVolumeResponse{Reply: &CreateVolumeResponse_Result_{
 		Result: &CreateVolumeResponse_Result{
@@ -78,21 +78,16 @@ func (cs *Controller) DeleteVolume(context context.Context, request *DeleteVolum
 	logger.Info("start")
 	defer logger.Info("end")
 
-	var volName, errorDescription string
-	var ok bool
+	var volId, errorDescription string
 
-	if volName, ok = request.GetVolumeId().GetValues()["volume_name"]; !ok {
-		errorDescription = "Request missing 'volume_name'"
-		logger.Error("failed-volume-deletion", fmt.Errorf(errorDescription))
-		return createDeleteVolumeErrorResponse(Error_DeleteVolumeError_INVALID_VOLUME_ID, errorDescription), nil
-	}
-	if volName == "" {
+	volId = request.GetVolumeHandle().GetId()
+	if volId == "" {
 		errorDescription = "Request has blank volume name"
 		logger.Error("failed-volume-deletion", fmt.Errorf(errorDescription))
-		return createDeleteVolumeErrorResponse(Error_DeleteVolumeError_INVALID_VOLUME_ID, errorDescription), nil
+		return createDeleteVolumeErrorResponse(Error_DeleteVolumeError_INVALID_VOLUME_HANDLE, errorDescription), nil
 	}
 
-	delete(cs.volumes, volName)
+	delete(cs.volumes, volId)
 
 	return &DeleteVolumeResponse{Reply: &DeleteVolumeResponse_Result_{
 		Result: &DeleteVolumeResponse_Result{},
@@ -164,7 +159,7 @@ func (cs *Controller) GetCapacity(ctx context.Context, in *GetCapacityRequest) (
 	return &GetCapacityResponse{
 		Reply: &GetCapacityResponse_Result_{
 			Result: &GetCapacityResponse_Result{
-				TotalCapacity: ^uint64(0),
+				AvailableCapacity: ^uint64(0),
 			},
 		},
 	}, nil
