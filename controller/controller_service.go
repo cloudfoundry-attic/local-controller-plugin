@@ -97,7 +97,7 @@ func (cs *Controller) DeleteVolume(context context.Context, request *DeleteVolum
 func (cs *Controller) ControllerPublishVolume(ctx context.Context, in *ControllerPublishVolumeRequest) (*ControllerPublishVolumeResponse, error) {
 	return &ControllerPublishVolumeResponse{Reply: &ControllerPublishVolumeResponse_Result_{
 		Result: &ControllerPublishVolumeResponse_Result{
-			PublishVolumeInfo: &PublishVolumeInfo{},
+			PublishVolumeInfo: map[string]string{},
 		},
 	}}, nil
 }
@@ -165,6 +165,11 @@ func (cs *Controller) GetCapacity(ctx context.Context, in *GetCapacityRequest) (
 	}, nil
 }
 
+func (cs* Controller) ControllerProbe(ctx context.Context, in *ControllerProbeRequest) (*ControllerProbeResponse, error){
+	return &ControllerProbeResponse{Reply: &ControllerProbeResponse_Result_{
+		Result: &ControllerProbeResponse_Result{},
+	}}, nil
+}
 func (cs *Controller) ControllerGetCapabilities(ctx context.Context, in *ControllerGetCapabilitiesRequest) (*ControllerGetCapabilitiesResponse, error) {
 	return &ControllerGetCapabilitiesResponse{Reply: &ControllerGetCapabilitiesResponse_Result_{
 		Result: &ControllerGetCapabilitiesResponse_Result{

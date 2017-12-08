@@ -326,6 +326,27 @@ var _ = Describe("ControllerService", func() {
 			})
 		})
 
+		Describe("ControllerProbe", func() {
+			var(
+				request 					*ControllerProbeRequest
+				expectedResponse  *ControllerProbeResponse
+			)
+			BeforeEach(func() {
+				request = &ControllerProbeRequest{
+					&Version{Major:0, Minor: 0, Patch:1},
+				}
+			})
+
+			JustBeforeEach(func() {
+				expectedResponse, _ = cs.ControllerProbe(context,request)
+			})
+
+			It("should return a ControllerProbeResponse", func(){
+				Expect(*expectedResponse).NotTo(BeNil())
+				Expect(expectedResponse).ToNot(BeNil())
+			})
+		})
+
 		Describe("GetCapacity", func() {
 			var (
 				request          *GetCapacityRequest
