@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"syscall"
@@ -11,6 +10,8 @@ import (
 	"code.cloudfoundry.org/lager"
 	. "github.com/container-storage-interface/spec/lib/go/csi"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 )
 
 const VolumesRootDir = "_volumes"
@@ -51,7 +52,7 @@ func (cs *Controller) CreateVolume(ctx context.Context, in *CreateVolumeRequest)
 	var volId string = in.GetName()
 	var ok bool
 	if volId == "" {
-		return createCreateVolumeErrorResponse(Error_CreateVolumeError_INVALID_VOLUME_NAME, "Volume name not supplied"), nil
+		return nil, grpc.Errorf(codes.InvalidArgument, "Volume name not supplied")
 	}
 
 	var localVol *LocalVolume
@@ -59,15 +60,14 @@ func (cs *Controller) CreateVolume(ctx context.Context, in *CreateVolumeRequest)
 	logger.Info("creating-volume", lager.Data{"volume_name": volId, "volume_id": volId})
 
 	if _, ok = cs.volumes[volId]; !ok {
-		localVol = &LocalVolume{VolumeInfo: VolumeInfo{Handle: &VolumeHandle{Id: volId}}}
+		localVol = &LocalVolume{VolumeInfo: VolumeInfo{Id: volId}}
 		cs.volumes[in.Name] = localVol
 	}
 	localVol = cs.volumes[volId]
 
-	resp := &CreateVolumeResponse{Reply: &CreateVolumeResponse_Result_{
-		Result: &CreateVolumeResponse_Result{
-			VolumeInfo: &localVol.VolumeInfo,
-		}}}
+	resp := &CreateVolumeResponse{
+		VolumeInfo: &localVol.VolumeInfo,
+	}
 
 	logger.Info("CreateVolumeResponse", lager.Data{"resp": resp})
 	return resp, nil
@@ -78,132 +78,104 @@ func (cs *Controller) DeleteVolume(context context.Context, request *DeleteVolum
 	logger.Info("start")
 	defer logger.Info("end")
 
-	var volId, errorDescription string
-
-	volId = request.GetVolumeHandle().GetId()
+	volId := request.GetVolumeId()
 	if volId == "" {
-		errorDescription = "Request has blank volume name"
-		logger.Error("failed-volume-deletion", fmt.Errorf(errorDescription))
-		return createDeleteVolumeErrorResponse(Error_DeleteVolumeError_INVALID_VOLUME_HANDLE, errorDescription), nil
+		return nil, grpc.Errorf(codes.InvalidArgument, "Volume name not supplied")
 	}
 
 	delete(cs.volumes, volId)
 
-	return &DeleteVolumeResponse{Reply: &DeleteVolumeResponse_Result_{
-		Result: &DeleteVolumeResponse_Result{},
-	}}, nil
-
+	return &DeleteVolumeResponse{}, nil
 }
+
 func (cs *Controller) ControllerPublishVolume(ctx context.Context, in *ControllerPublishVolumeRequest) (*ControllerPublishVolumeResponse, error) {
-	return &ControllerPublishVolumeResponse{Reply: &ControllerPublishVolumeResponse_Result_{
-		Result: &ControllerPublishVolumeResponse_Result{
-			PublishVolumeInfo: map[string]string{},
-		},
-	}}, nil
+	return &ControllerPublishVolumeResponse{PublishVolumeInfo: map[string]string{}}, nil
 }
 
 func (cs *Controller) ControllerUnpublishVolume(ctx context.Context, in *ControllerUnpublishVolumeRequest) (*ControllerUnpublishVolumeResponse, error) {
-	return &ControllerUnpublishVolumeResponse{Reply: &ControllerUnpublishVolumeResponse_Result_{
-		Result: &ControllerUnpublishVolumeResponse_Result{},
-	}}, nil
+	return &ControllerUnpublishVolumeResponse{}, nil
 }
 
 func (cs *Controller) ValidateVolumeCapabilities(ctx context.Context, in *ValidateVolumeCapabilitiesRequest) (*ValidateVolumeCapabilitiesResponse, error) {
 	for _, vc := range in.GetVolumeCapabilities() {
 		if vc.GetMount().GetFsType() != "" {
 			return &ValidateVolumeCapabilitiesResponse{
-				Reply: &ValidateVolumeCapabilitiesResponse_Result_{
-					Result: &ValidateVolumeCapabilitiesResponse_Result{
-						Supported: false,
-						Message:   "Specifying FsType is unsupported.",
-					}}}, nil
+				Supported: false,
+				Message:   "Specifying FsType is unsupported.",
+			}, nil
 		}
 		for _, flag := range vc.GetMount().GetMountFlags() {
 			if flag != "" {
 				return &ValidateVolumeCapabilitiesResponse{
-					Reply: &ValidateVolumeCapabilitiesResponse_Result_{
-						Result: &ValidateVolumeCapabilitiesResponse_Result{
-							Supported: false,
-							Message:   "Specifying mount flags is unsupported.",
-						}}}, nil
+					Supported: false,
+					Message:   "Specifying mount flags is unsupported.",
+				}, nil
 			}
 		}
 	}
 	return &ValidateVolumeCapabilitiesResponse{
-		Reply: &ValidateVolumeCapabilitiesResponse_Result_{
-			Result: &ValidateVolumeCapabilitiesResponse_Result{
-				Supported: true,
-			}}}, nil
+		Supported: true,
+	}, nil
 }
 
 func (cs *Controller) ListVolumes(ctx context.Context, in *ListVolumesRequest) (*ListVolumesResponse, error) {
-	var volList []*ListVolumesResponse_Result_Entry
+	var volList []*ListVolumesResponse_Entry
 
 	for _, v := range cs.volumes {
-		entry := &ListVolumesResponse_Result_Entry{
+		entry := &ListVolumesResponse_Entry{
 			VolumeInfo: &v.VolumeInfo,
 		}
 		volList = append(volList, entry)
 	}
 
 	return &ListVolumesResponse{
-		Reply: &ListVolumesResponse_Result_{
-			Result: &ListVolumesResponse_Result{
-				Entries: volList,
-			},
-		},
+		Entries: volList,
 	}, nil
 }
 
 func (cs *Controller) GetCapacity(ctx context.Context, in *GetCapacityRequest) (*GetCapacityResponse, error) {
 	return &GetCapacityResponse{
-		Reply: &GetCapacityResponse_Result_{
-			Result: &GetCapacityResponse_Result{
-				AvailableCapacity: ^uint64(0),
-			},
-		},
+		AvailableCapacity: ^uint64(0),
 	}, nil
 }
 
-func (cs* Controller) ControllerProbe(ctx context.Context, in *ControllerProbeRequest) (*ControllerProbeResponse, error){
-	return &ControllerProbeResponse{Reply: &ControllerProbeResponse_Result_{
-		Result: &ControllerProbeResponse_Result{},
-	}}, nil
+func (cs *Controller) ControllerProbe(ctx context.Context, in *ControllerProbeRequest) (*ControllerProbeResponse, error) {
+	return &ControllerProbeResponse{}, nil
 }
+
 func (cs *Controller) ControllerGetCapabilities(ctx context.Context, in *ControllerGetCapabilitiesRequest) (*ControllerGetCapabilitiesResponse, error) {
-	return &ControllerGetCapabilitiesResponse{Reply: &ControllerGetCapabilitiesResponse_Result_{
-		Result: &ControllerGetCapabilitiesResponse_Result{
-			Capabilities: []*ControllerServiceCapability{
-				{
-					Type: &ControllerServiceCapability_Rpc{
-						Rpc: &ControllerServiceCapability_RPC{
-							Type: ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
-						},
-					},
-				},
-				{
-					Type: &ControllerServiceCapability_Rpc{
-						Rpc: &ControllerServiceCapability_RPC{
-							Type: ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
-						},
-					},
-				},
-				{
-					Type: &ControllerServiceCapability_Rpc{
-						Rpc: &ControllerServiceCapability_RPC{
-							Type: ControllerServiceCapability_RPC_LIST_VOLUMES,
-						},
-					},
-				},
-				{
-					Type: &ControllerServiceCapability_Rpc{
-						Rpc: &ControllerServiceCapability_RPC{
-							Type: ControllerServiceCapability_RPC_GET_CAPACITY,
-						},
+	return &ControllerGetCapabilitiesResponse{
+		Capabilities: []*ControllerServiceCapability{
+			{
+				Type: &ControllerServiceCapability_Rpc{
+					Rpc: &ControllerServiceCapability_RPC{
+						Type: ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
 					},
 				},
 			},
-		}}}, nil
+			{
+				Type: &ControllerServiceCapability_Rpc{
+					Rpc: &ControllerServiceCapability_RPC{
+						Type: ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
+					},
+				},
+			},
+			{
+				Type: &ControllerServiceCapability_Rpc{
+					Rpc: &ControllerServiceCapability_RPC{
+						Type: ControllerServiceCapability_RPC_LIST_VOLUMES,
+					},
+				},
+			},
+			{
+				Type: &ControllerServiceCapability_Rpc{
+					Rpc: &ControllerServiceCapability_RPC{
+						Type: ControllerServiceCapability_RPC_GET_CAPACITY,
+					},
+				},
+			},
+		},
+	}, nil
 }
 
 func (cs *Controller) volumePath(logger lager.Logger, volumeId string) string {
@@ -218,26 +190,4 @@ func (cs *Controller) volumePath(logger lager.Logger, volumeId string) string {
 	cs.os.MkdirAll(volumesPathRoot, os.ModePerm)
 
 	return filepath.Join(volumesPathRoot, volumeId)
-}
-
-func createCreateVolumeErrorResponse(errorCode Error_CreateVolumeError_CreateVolumeErrorCode, errorDescription string) *CreateVolumeResponse {
-	return &CreateVolumeResponse{
-		Reply: &CreateVolumeResponse_Error{
-			Error: &Error{
-				Value: &Error_CreateVolumeError_{
-					CreateVolumeError: &Error_CreateVolumeError{
-						ErrorCode:        errorCode,
-						ErrorDescription: errorDescription,
-					}}}}}
-}
-
-func createDeleteVolumeErrorResponse(errorCode Error_DeleteVolumeError_DeleteVolumeErrorCode, errorDescription string) *DeleteVolumeResponse {
-	return &DeleteVolumeResponse{
-		Reply: &DeleteVolumeResponse_Error{
-			Error: &Error{
-				Value: &Error_DeleteVolumeError_{
-					DeleteVolumeError: &Error_DeleteVolumeError{
-						ErrorCode:        errorCode,
-						ErrorDescription: errorDescription,
-					}}}}}
 }
