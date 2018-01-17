@@ -15,7 +15,6 @@ import (
 	"github.com/tedsuo/ifrit/grpc_server"
 	"github.com/tedsuo/ifrit/sigmon"
 	"code.cloudfoundry.org/lager/lagerflags"
-	"github.com/paulcwarren/spec"
 	"google.golang.org/grpc"
 )
 
