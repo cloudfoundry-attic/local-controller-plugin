@@ -178,6 +178,21 @@ func (cs *Controller) ControllerGetCapabilities(ctx context.Context, in *Control
 	}, nil
 }
 
+func (cs *Controller) GetSupportedVersions(ctx context.Context, in *GetSupportedVersionsRequest) (*GetSupportedVersionsResponse, error) {
+	return &GetSupportedVersionsResponse{
+		SupportedVersions: []*Version{
+			{Major: 0, Minor: 1, Patch: 0},
+		},
+	}, nil
+}
+
+func (cs *Controller) GetPluginInfo(ctx context.Context, in *GetPluginInfoRequest) (*GetPluginInfoResponse, error) {
+	return &GetPluginInfoResponse{
+		Name: "com.github.jeffpak.local-controller-plugin",
+		VendorVersion: "0.1.0",
+	}, nil
+}
+
 func (cs *Controller) volumePath(logger lager.Logger, volumeId string) string {
 	dir, err := cs.filepath.Abs(cs.mountPathRoot)
 	if err != nil {
