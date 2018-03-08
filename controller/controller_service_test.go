@@ -5,7 +5,7 @@ import (
 
 	"code.cloudfoundry.org/goshims/filepathshim/filepath_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
-	. "github.com/container-storage-interface/spec/lib/go/csi"
+	. "github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"github.com/jeffpak/local-controller-plugin/controller"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,11 +15,9 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var CSIVersion = &Version{Major: 0, Minor: 1, Patch: 0}
-
 func VolumeIDMatcher(volID string) GomegaMatcher {
 	return WithTransform(func(entry *ListVolumesResponse_Entry) string {
-		return entry.GetVolumeInfo().GetId()
+		return entry.GetVolume().GetId()
 	}, Equal(volID))
 }
 
@@ -34,7 +32,7 @@ var _ = Describe("ControllerService", func() {
 		volumeName   string
 		volumeId     string
 		vc           []*VolumeCapability
-		volInfo      *VolumeInfo
+		vol          *Volume
 		err          error
 	)
 
@@ -47,7 +45,7 @@ var _ = Describe("ControllerService", func() {
 		volumeId = "vol-name"
 		volumeName = "vol-name"
 		vc = []*VolumeCapability{{AccessType: &VolumeCapability_Mount{Mount: &VolumeCapability_MountVolume{}}}}
-		volInfo = &VolumeInfo{Id: volumeId}
+		vol = &Volume{Id: volumeId}
 	})
 
 	Describe("CreateVolume", func() {
@@ -61,7 +59,7 @@ var _ = Describe("ControllerService", func() {
 
 		It("does not fail", func() {
 			Expect(*expectedResponse).To(Equal(CreateVolumeResponse{
-				VolumeInfo: volInfo,
+				Volume: vol,
 			}))
 		})
 
@@ -72,7 +70,7 @@ var _ = Describe("ControllerService", func() {
 
 			It("should succeed and respond with the existent volume", func() {
 				Expect(*expectedResponse).To(Equal(CreateVolumeResponse{
-					VolumeInfo: volInfo,
+					Volume: vol,
 				}))
 			})
 		})
@@ -85,7 +83,6 @@ var _ = Describe("ControllerService", func() {
 			)
 			BeforeEach(func() {
 				createVolReq = &CreateVolumeRequest{
-					Version:            &Version{},
 					Name:               "",
 					VolumeCapabilities: vc,
 				}
@@ -137,14 +134,13 @@ var _ = Describe("ControllerService", func() {
 					Expect(response).NotTo(BeNil())
 
 					listReq = &ListVolumesRequest{
-						Version:    CSIVersion,
 						MaxEntries: 100,
 					}
 
 					listResp, err = cs.ListVolumes(context, listReq)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(listResp).NotTo(BeNil())
-					volID := createVolResponse.GetVolumeInfo().GetId()
+					volID := createVolResponse.GetVolume().GetId()
 					Expect(listResp.GetEntries()).NotTo(ContainElement(VolumeIDMatcher(volID)))
 				})
 			})
@@ -159,13 +155,12 @@ var _ = Describe("ControllerService", func() {
 			Context("when ControllerPublishVolume is called with a ControllerPublishVolumeRequest", func() {
 				BeforeEach(func() {
 					request = &ControllerPublishVolumeRequest{
-						Version: CSIVersion,
-						VolumeId: volumeId,
-						NodeId: "",
-						VolumeCapability: vc[0],
-						Readonly: false,
-						UserCredentials: nil,
-						VolumeAttributes: nil,
+						VolumeId:                 volumeId,
+						NodeId:                   "",
+						VolumeCapability:         vc[0],
+						Readonly:                 false,
+						ControllerPublishSecrets: nil,
+						VolumeAttributes:         nil,
 					}
 				})
 				JustBeforeEach(func() {
@@ -174,7 +169,7 @@ var _ = Describe("ControllerService", func() {
 				It("should return a ControllerPublishVolumeResponse", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(expectedResponse).NotTo(BeNil())
-					Expect(expectedResponse.GetPublishVolumeInfo()).NotTo(BeNil())
+					Expect(expectedResponse.GetPublishInfo()).NotTo(BeNil())
 				})
 			})
 		})
@@ -187,7 +182,6 @@ var _ = Describe("ControllerService", func() {
 			Context("when ControllerUnpublishVolume is called with a ControllerUnpublishVolumeRequest", func() {
 				BeforeEach(func() {
 					request = &ControllerUnpublishVolumeRequest{
-						CSIVersion,
 						volumeId,
 						"",
 						nil,
@@ -220,7 +214,6 @@ var _ = Describe("ControllerService", func() {
 			Context("when called with no capabilities", func() {
 				BeforeEach(func() {
 					request = &ValidateVolumeCapabilitiesRequest{
-						Version: CSIVersion,
 						VolumeId: volumeId,
 						VolumeCapabilities: []*VolumeCapability{{AccessType: &VolumeCapability_Mount{
 							Mount: &VolumeCapability_MountVolume{
@@ -241,7 +234,6 @@ var _ = Describe("ControllerService", func() {
 			Context("when called with unsupported FsType capabilities", func() {
 				BeforeEach(func() {
 					request = &ValidateVolumeCapabilitiesRequest{
-						Version: CSIVersion,
 						VolumeId: volumeId,
 						VolumeCapabilities: []*VolumeCapability{{AccessType: &VolumeCapability_Mount{
 							Mount: &VolumeCapability_MountVolume{
@@ -264,7 +256,6 @@ var _ = Describe("ControllerService", func() {
 			Context("when called with unsupported MountFlag capabilities", func() {
 				BeforeEach(func() {
 					request = &ValidateVolumeCapabilitiesRequest{
-						Version: CSIVersion,
 						VolumeId: volumeId,
 						VolumeCapabilities: []*VolumeCapability{{AccessType: &VolumeCapability_Mount{
 							Mount: &VolumeCapability_MountVolume{
@@ -278,8 +269,8 @@ var _ = Describe("ControllerService", func() {
 				It("should return an error", func() {
 					Expect(err).To(BeNil())
 					Expect(expectedResponse).To(Equal(&ValidateVolumeCapabilitiesResponse{
-								Supported: false,
-								Message:   "Specifying mount flags is unsupported.",
+						Supported: false,
+						Message:   "Specifying mount flags is unsupported.",
 					}))
 				})
 			})
@@ -293,7 +284,6 @@ var _ = Describe("ControllerService", func() {
 
 			JustBeforeEach(func() {
 				request = &ListVolumesRequest{
-					CSIVersion,
 					10,
 					"starting-token",
 				}
@@ -309,17 +299,15 @@ var _ = Describe("ControllerService", func() {
 
 		Describe("ControllerProbe", func() {
 			var (
-				request          *ControllerProbeRequest
-				expectedResponse *ControllerProbeResponse
+				request          *ProbeRequest
+				expectedResponse *ProbeResponse
 			)
 			BeforeEach(func() {
-				request = &ControllerProbeRequest{
-					CSIVersion,
-				}
+				request = &ProbeRequest{}
 			})
 
 			JustBeforeEach(func() {
-				expectedResponse, _ = cs.ControllerProbe(context, request)
+				expectedResponse, _ = cs.Probe(context, request)
 			})
 
 			It("should return a ControllerProbeResponse", func() {
@@ -336,7 +324,6 @@ var _ = Describe("ControllerService", func() {
 			Context("when GetCapacity is called with a GetCapacityRequest", func() {
 				BeforeEach(func() {
 					request = &GetCapacityRequest{
-						CSIVersion,
 						vc,
 						nil,
 					}
@@ -359,9 +346,7 @@ var _ = Describe("ControllerService", func() {
 			)
 			Context("when ControllerGetCapabilities is called with a ControllerGetCapabilitiesRequest", func() {
 				BeforeEach(func() {
-					request = &ControllerGetCapabilitiesRequest{
-						CSIVersion,
-					}
+					request = &ControllerGetCapabilitiesRequest{}
 				})
 				JustBeforeEach(func() {
 					expectedResponse, err = cs.ControllerGetCapabilities(context, request)
@@ -380,38 +365,14 @@ var _ = Describe("ControllerService", func() {
 		})
 	})
 
-	Describe("GetSupportedVersions", func() {
-		var (
-			request *GetSupportedVersionsRequest
-			expectedResponse *GetSupportedVersionsResponse
-		)
-		Context("when provided with a GetSupportedVersionsRequest", func() {
-			BeforeEach(func() {
-				request = &GetSupportedVersionsRequest{}
-			})
-
-			JustBeforeEach(func() {
-				expectedResponse, err = cs.GetSupportedVersions(context, request)
-			})
-
-			It("returns a list of supported versions", func() {
-				Expect(expectedResponse).NotTo(BeNil())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(expectedResponse.GetSupportedVersions()).NotTo(BeNil())
-				Expect(expectedResponse.GetSupportedVersions()).NotTo(BeEmpty())
-				Expect(expectedResponse.GetSupportedVersions()).To(ContainElement(&Version{Major: 0, Minor: 1, Patch: 0}))
-			})
-		})
-	})
-
 	Describe("GetPluginInfo", func() {
 		var (
-			request *GetPluginInfoRequest
+			request          *GetPluginInfoRequest
 			expectedResponse *GetPluginInfoResponse
 		)
 		Context("when provided with a GetPluginInfoRequest", func() {
 			BeforeEach(func() {
-				request = &GetPluginInfoRequest{Version: CSIVersion}
+				request = &GetPluginInfoRequest{}
 			})
 
 			JustBeforeEach(func() {
@@ -440,7 +401,6 @@ func (*DummyContext) Value(key interface{}) interface{} { return nil }
 
 func createSuccessful(ctx context.Context, cs ControllerServer, fakeOs *os_fake.FakeOs, volumeName string, vc []*VolumeCapability) *CreateVolumeResponse {
 	createResponse, err := cs.CreateVolume(ctx, &CreateVolumeRequest{
-		Version:            &Version{},
 		Name:               volumeName,
 		VolumeCapabilities: vc,
 	})
@@ -450,7 +410,6 @@ func createSuccessful(ctx context.Context, cs ControllerServer, fakeOs *os_fake.
 
 func deleteSuccessful(ctx context.Context, cs ControllerServer, volumeId string) *DeleteVolumeResponse {
 	deleteResponse, err := cs.DeleteVolume(ctx, &DeleteVolumeRequest{
-		Version:      &Version{},
 		VolumeId: volumeId,
 	})
 	Expect(err).To(BeNil())

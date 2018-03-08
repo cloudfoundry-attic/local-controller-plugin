@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/goshims/filepathshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
-	. "github.com/container-storage-interface/spec/lib/go/csi"
+	. "github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -18,7 +18,7 @@ const VolumesRootDir = "_volumes"
 const MountsRootDir = "_mounts"
 
 type LocalVolume struct {
-	VolumeInfo
+	Volume
 }
 
 type Controller struct {
@@ -60,13 +60,13 @@ func (cs *Controller) CreateVolume(ctx context.Context, in *CreateVolumeRequest)
 	logger.Info("creating-volume", lager.Data{"volume_name": volId, "volume_id": volId})
 
 	if _, ok = cs.volumes[volId]; !ok {
-		localVol = &LocalVolume{VolumeInfo: VolumeInfo{Id: volId}}
+		localVol = &LocalVolume{Volume: Volume{Id: volId}}
 		cs.volumes[in.Name] = localVol
 	}
 	localVol = cs.volumes[volId]
 
 	resp := &CreateVolumeResponse{
-		VolumeInfo: &localVol.VolumeInfo,
+		Volume: &localVol.Volume,
 	}
 
 	logger.Info("CreateVolumeResponse", lager.Data{"resp": resp})
@@ -89,7 +89,7 @@ func (cs *Controller) DeleteVolume(context context.Context, request *DeleteVolum
 }
 
 func (cs *Controller) ControllerPublishVolume(ctx context.Context, in *ControllerPublishVolumeRequest) (*ControllerPublishVolumeResponse, error) {
-	return &ControllerPublishVolumeResponse{PublishVolumeInfo: map[string]string{}}, nil
+	return &ControllerPublishVolumeResponse{PublishInfo: map[string]string{}}, nil
 }
 
 func (cs *Controller) ControllerUnpublishVolume(ctx context.Context, in *ControllerUnpublishVolumeRequest) (*ControllerUnpublishVolumeResponse, error) {
@@ -123,7 +123,7 @@ func (cs *Controller) ListVolumes(ctx context.Context, in *ListVolumesRequest) (
 
 	for _, v := range cs.volumes {
 		entry := &ListVolumesResponse_Entry{
-			VolumeInfo: &v.VolumeInfo,
+			Volume: &v.Volume,
 		}
 		volList = append(volList, entry)
 	}
@@ -133,14 +133,18 @@ func (cs *Controller) ListVolumes(ctx context.Context, in *ListVolumesRequest) (
 	}, nil
 }
 
+func (cs *Controller) GetPluginCapabilities(ctx context.Context, in *GetPluginCapabilitiesRequest) (*GetPluginCapabilitiesResponse, error) {
+	return &GetPluginCapabilitiesResponse{Capabilities: []*PluginCapability{}}, nil
+}
+
 func (cs *Controller) GetCapacity(ctx context.Context, in *GetCapacityRequest) (*GetCapacityResponse, error) {
 	return &GetCapacityResponse{
-		AvailableCapacity: ^uint64(0),
+		AvailableCapacity: ^int64(0),
 	}, nil
 }
 
-func (cs *Controller) ControllerProbe(ctx context.Context, in *ControllerProbeRequest) (*ControllerProbeResponse, error) {
-	return &ControllerProbeResponse{}, nil
+func (cs *Controller) Probe(ctx context.Context, in *ProbeRequest) (*ProbeResponse, error) {
+	return &ProbeResponse{}, nil
 }
 
 func (cs *Controller) ControllerGetCapabilities(ctx context.Context, in *ControllerGetCapabilitiesRequest) (*ControllerGetCapabilitiesResponse, error) {
@@ -178,17 +182,9 @@ func (cs *Controller) ControllerGetCapabilities(ctx context.Context, in *Control
 	}, nil
 }
 
-func (cs *Controller) GetSupportedVersions(ctx context.Context, in *GetSupportedVersionsRequest) (*GetSupportedVersionsResponse, error) {
-	return &GetSupportedVersionsResponse{
-		SupportedVersions: []*Version{
-			{Major: 0, Minor: 1, Patch: 0},
-		},
-	}, nil
-}
-
 func (cs *Controller) GetPluginInfo(ctx context.Context, in *GetPluginInfoRequest) (*GetPluginInfoResponse, error) {
 	return &GetPluginInfoResponse{
-		Name: "com.github.jeffpak.local-controller-plugin",
+		Name:          "com.github.jeffpak.local-controller-plugin",
 		VendorVersion: "0.1.0",
 	}, nil
 }
@@ -202,7 +198,11 @@ func (cs *Controller) volumePath(logger lager.Logger, volumeId string) string {
 	volumesPathRoot := filepath.Join(dir, VolumesRootDir)
 	orig := syscall.Umask(000)
 	defer syscall.Umask(orig)
-	cs.os.MkdirAll(volumesPathRoot, os.ModePerm)
+	err = cs.os.MkdirAll(volumesPathRoot, os.ModePerm)
+
+	if err != nil {
+		logger.Fatal("mkdir-all-failed", err)
+	}
 
 	return filepath.Join(volumesPathRoot, volumeId)
 }
