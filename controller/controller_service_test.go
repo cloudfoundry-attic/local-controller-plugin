@@ -182,9 +182,9 @@ var _ = Describe("ControllerService", func() {
 			Context("when ControllerUnpublishVolume is called with a ControllerUnpublishVolumeRequest", func() {
 				BeforeEach(func() {
 					request = &ControllerUnpublishVolumeRequest{
-						volumeId,
-						"",
-						nil,
+						VolumeId: volumeId,
+						NodeId:   "",
+						ControllerUnpublishSecrets: map[string]string{},
 					}
 				})
 				JustBeforeEach(func() {
@@ -284,8 +284,8 @@ var _ = Describe("ControllerService", func() {
 
 			JustBeforeEach(func() {
 				request = &ListVolumesRequest{
-					10,
-					"starting-token",
+					MaxEntries:    10,
+					StartingToken: "starting-token",
 				}
 				expectedResponse, err = cs.ListVolumes(context, request)
 			})
@@ -324,8 +324,9 @@ var _ = Describe("ControllerService", func() {
 			Context("when GetCapacity is called with a GetCapacityRequest", func() {
 				BeforeEach(func() {
 					request = &GetCapacityRequest{
-						vc,
-						nil,
+						VolumeCapabilities: vc,
+						Parameters:         map[string]string{},
+						AccessibleTopology: nil,
 					}
 				})
 				JustBeforeEach(func() {
@@ -384,6 +385,69 @@ var _ = Describe("ControllerService", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(expectedResponse.GetName()).To(Equal("com.github.jeffpak.local-controller-plugin"))
 				Expect(expectedResponse.GetVendorVersion()).To(Equal("0.1.0"))
+			})
+		})
+	})
+
+	Describe("CreateSnapshot", func() {
+		var (
+			request          *CreateSnapshotRequest
+			expectedResponse *CreateSnapshotResponse
+		)
+		Context("when provided with a CreateSnapshotRequest", func() {
+			BeforeEach(func() {
+				request = &CreateSnapshotRequest{}
+			})
+
+			JustBeforeEach(func() {
+				expectedResponse, err = cs.CreateSnapshot(context, request)
+			})
+
+			It("returns an unimplemented error", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Snapshots not implemented"))
+			})
+		})
+	})
+
+	Describe("DeleteSnapshot", func() {
+		var (
+			request          *DeleteSnapshotRequest
+			expectedResponse *DeleteSnapshotResponse
+		)
+		Context("when provided with a DeleteSnapshotRequest", func() {
+			BeforeEach(func() {
+				request = &DeleteSnapshotRequest{}
+			})
+
+			JustBeforeEach(func() {
+				expectedResponse, err = cs.DeleteSnapshot(context, request)
+			})
+
+			It("returns an unimplemented error", func() {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Snapshots not implemented"))
+			})
+		})
+	})
+
+	Describe("ListSnapshots", func() {
+		var (
+			request          *ListSnapshotsRequest
+			expectedResponse *ListSnapshotsResponse
+		)
+		Context("when provided with a ListSnapshotsRequest", func() {
+			BeforeEach(func() {
+				request = &ListSnapshotsRequest{}
+			})
+
+			JustBeforeEach(func() {
+				expectedResponse, err = cs.ListSnapshots(context, request)
+			})
+
+			It("returns an empty list of snapshots", func() {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(*expectedResponse).To(Equal(ListSnapshotsResponse{}))
 			})
 		})
 	})

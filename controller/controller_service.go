@@ -182,6 +182,18 @@ func (cs *Controller) ControllerGetCapabilities(ctx context.Context, in *Control
 	}, nil
 }
 
+func (cs *Controller) CreateSnapshot(ctx context.Context, in *CreateSnapshotRequest) (*CreateSnapshotResponse, error) {
+	return nil, grpc.Errorf(codes.Unimplemented, "Snapshots not implemented")
+}
+
+func (cs *Controller) DeleteSnapshot(ctx context.Context, in *DeleteSnapshotRequest) (*DeleteSnapshotResponse, error) {
+	return nil, grpc.Errorf(codes.Unimplemented, "Snapshots not implemented")
+}
+
+func (cs *Controller) ListSnapshots(ctx context.Context, in *ListSnapshotsRequest) (*ListSnapshotsResponse, error) {
+	return &ListSnapshotsResponse{}, nil
+}
+
 func (cs *Controller) GetPluginInfo(ctx context.Context, in *GetPluginInfoRequest) (*GetPluginInfoResponse, error) {
 	return &GetPluginInfoResponse{
 		Name:          "com.github.jeffpak.local-controller-plugin",
