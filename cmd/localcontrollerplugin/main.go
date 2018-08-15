@@ -20,7 +20,7 @@ import (
 
 var atAddress = flag.String(
 	"listenAddr",
-	"0.0.0.0:50051",
+	"0.0.0.0:9860",
 	"host:port to serve on",
 )
 
