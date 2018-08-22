@@ -389,6 +389,30 @@ var _ = Describe("ControllerService", func() {
 		})
 	})
 
+	Describe("GetPluginCapabilities", func() {
+		var (
+			request          *GetPluginCapabilitiesRequest
+			expectedResponse *GetPluginCapabilitiesResponse
+		)
+
+		BeforeEach(func() {
+			request = &GetPluginCapabilitiesRequest{}
+		})
+
+		JustBeforeEach(func() {
+			expectedResponse, err = cs.GetPluginCapabilities(context, request)
+		})
+
+		It("returns the plugin capabilities", func() {
+			Expect(expectedResponse).NotTo(BeNil())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(expectedResponse.Capabilities).To(HaveLen(1))
+			service := expectedResponse.Capabilities[0].GetService()
+			Expect(service).NotTo(BeNil())
+			Expect(service.GetType()).To(Equal(PluginCapability_Service_CONTROLLER_SERVICE))
+		})
+	})
+
 	Describe("CreateSnapshot", func() {
 		var (
 			request          *CreateSnapshotRequest

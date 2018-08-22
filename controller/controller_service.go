@@ -134,7 +134,15 @@ func (cs *Controller) ListVolumes(ctx context.Context, in *ListVolumesRequest) (
 }
 
 func (cs *Controller) GetPluginCapabilities(ctx context.Context, in *GetPluginCapabilitiesRequest) (*GetPluginCapabilitiesResponse, error) {
-	return &GetPluginCapabilitiesResponse{Capabilities: []*PluginCapability{}}, nil
+	return &GetPluginCapabilitiesResponse{Capabilities: []*PluginCapability{
+		{
+			Type: &PluginCapability_Service_{
+				Service: &PluginCapability_Service{
+					Type: PluginCapability_Service_CONTROLLER_SERVICE,
+				},
+			},
+		},
+	}}, nil
 }
 
 func (cs *Controller) GetCapacity(ctx context.Context, in *GetCapacityRequest) (*GetCapacityResponse, error) {
