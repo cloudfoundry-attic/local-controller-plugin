@@ -414,20 +414,9 @@ var _ = Describe("ControllerService", func() {
 	})
 
 	Describe("CreateSnapshot", func() {
-		var (
-			request          *CreateSnapshotRequest
-			expectedResponse *CreateSnapshotResponse
-		)
 		Context("when provided with a CreateSnapshotRequest", func() {
-			BeforeEach(func() {
-				request = &CreateSnapshotRequest{}
-			})
-
-			JustBeforeEach(func() {
-				expectedResponse, err = cs.CreateSnapshot(context, request)
-			})
-
 			It("returns an unimplemented error", func() {
+				_, err = cs.CreateSnapshot(context, &CreateSnapshotRequest{})
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Snapshots not implemented"))
 			})
@@ -435,20 +424,9 @@ var _ = Describe("ControllerService", func() {
 	})
 
 	Describe("DeleteSnapshot", func() {
-		var (
-			request          *DeleteSnapshotRequest
-			expectedResponse *DeleteSnapshotResponse
-		)
 		Context("when provided with a DeleteSnapshotRequest", func() {
-			BeforeEach(func() {
-				request = &DeleteSnapshotRequest{}
-			})
-
-			JustBeforeEach(func() {
-				expectedResponse, err = cs.DeleteSnapshot(context, request)
-			})
-
 			It("returns an unimplemented error", func() {
+				_, err = cs.DeleteSnapshot(context, &DeleteSnapshotRequest{})
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Snapshots not implemented"))
 			})
