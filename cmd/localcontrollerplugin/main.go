@@ -10,8 +10,8 @@ import (
 	"code.cloudfoundry.org/lager"
 
 	"code.cloudfoundry.org/lager/lagerflags"
+	"code.cloudfoundry.org/local-controller-plugin/controller"
 	. "github.com/container-storage-interface/spec/lib/go/csi/v0"
-	"github.com/jeffpak/local-controller-plugin/controller"
 	"github.com/tedsuo/ifrit"
 	"github.com/tedsuo/ifrit/grpc_server"
 	"github.com/tedsuo/ifrit/sigmon"

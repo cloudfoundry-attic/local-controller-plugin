@@ -5,8 +5,8 @@ import (
 
 	"code.cloudfoundry.org/goshims/filepathshim/filepath_fake"
 	"code.cloudfoundry.org/goshims/osshim/os_fake"
+	"code.cloudfoundry.org/local-controller-plugin/controller"
 	. "github.com/container-storage-interface/spec/lib/go/csi/v0"
-	"github.com/jeffpak/local-controller-plugin/controller"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/types"
@@ -383,7 +383,7 @@ var _ = Describe("ControllerService", func() {
 			It("returns the plugin info", func() {
 				Expect(expectedResponse).NotTo(BeNil())
 				Expect(err).ToNot(HaveOccurred())
-				Expect(expectedResponse.GetName()).To(Equal("com.github.jeffpak.local-controller-plugin"))
+				Expect(expectedResponse.GetName()).To(Equal("org.cloudfoundry.code.local-controller-plugin"))
 				Expect(expectedResponse.GetVendorVersion()).To(Equal("0.1.0"))
 			})
 		})

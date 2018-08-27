@@ -204,7 +204,7 @@ func (cs *Controller) ListSnapshots(ctx context.Context, in *ListSnapshotsReques
 
 func (cs *Controller) GetPluginInfo(ctx context.Context, in *GetPluginInfoRequest) (*GetPluginInfoResponse, error) {
 	return &GetPluginInfoResponse{
-		Name:          "com.github.jeffpak.local-controller-plugin",
+		Name:          "org.cloudfoundry.code.local-controller-plugin",
 		VendorVersion: "0.1.0",
 	}, nil
 }
