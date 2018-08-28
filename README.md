@@ -19,7 +19,7 @@ THIS REPOSITORY IS A WORK IN PROGRESS.
 | GetCapacity | Empty Response |
 | ControllerGetCapabilities | Returns response with all controller capabilities |
 
-Note: Even though CreateVolume and DeleteVolume return a response that a volume is created or deleted, the actual functionality under the hood is a no op. Since we're using a local volume, we designate the [node plugin](https://github.com/cloudfoundry-incubator/local-node-plugin) to handle the actual creation and deletion of the plugin. 
+Note: Even though CreateVolume and DeleteVolume return a response that a volume is created or deleted, the actual functionality under the hood is a no op. Since we're using a local volume, we designate the [node plugin](https://github.com/cloudfoundry/local-node-plugin) to handle the actual creation and deletion of the plugin.
 
 ## Running Tests
 
