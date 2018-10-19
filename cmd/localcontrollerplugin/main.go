@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 
 	"code.cloudfoundry.org/goshims/filepathshim"
 	"code.cloudfoundry.org/goshims/osshim"
@@ -26,7 +25,9 @@ var atAddress = flag.String(
 func main() {
 	parseCommandLine()
 
-	logger := lagerflags.NewFromConfig("local-contoller-plugin", lagerflags.ConfigFromFlags())
+	logger, _ := lagerflags.NewFromConfig("local-contoller-plugin", lagerflags.ConfigFromFlags())
+	logger.Info("starting")
+	defer logger.Info("end")
 
 	listenAddress := *atAddress
 
@@ -34,12 +35,12 @@ func main() {
 	server := grpc_server.NewGRPCServer(listenAddress, nil, controller, RegisterServices)
 
 	monitor := ifrit.Invoke(sigmon.New(server))
-	log.Println("Started")
+	logger.Info("started")
 
 	err := <-monitor.Wait()
 
 	if err != nil {
-		log.Fatalf("exited-with-failure: %v", err)
+		logger.Fatal("exited-with-failure", err)
 	}
 }
 
