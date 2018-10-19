@@ -3,12 +3,9 @@ package main
 import (
 	"flag"
 	"log"
-	"os"
 
 	"code.cloudfoundry.org/goshims/filepathshim"
 	"code.cloudfoundry.org/goshims/osshim"
-	"code.cloudfoundry.org/lager"
-
 	"code.cloudfoundry.org/lager/lagerflags"
 	"code.cloudfoundry.org/local-controller-plugin/controller"
 	. "github.com/container-storage-interface/spec/lib/go/csi/v0"
@@ -29,9 +26,7 @@ var atAddress = flag.String(
 func main() {
 	parseCommandLine()
 
-	logger := lager.NewLogger("local-contoller-plugin")
-	sink := lager.NewReconfigurableSink(lager.NewWriterSink(os.Stdout, lager.DEBUG), lager.DEBUG)
-	logger.RegisterSink(sink)
+	logger := lagerflags.NewFromConfig("local-contoller-plugin", lagerflags.ConfigFromFlags())
 
 	listenAddress := *atAddress
 
