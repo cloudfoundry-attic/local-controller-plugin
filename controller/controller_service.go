@@ -8,7 +8,7 @@ import (
 	"code.cloudfoundry.org/goshims/filepathshim"
 	"code.cloudfoundry.org/goshims/osshim"
 	"code.cloudfoundry.org/lager"
-	. "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	. "github.com/container-storage-interface/spec/lib/go/csi"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -60,7 +60,7 @@ func (cs *Controller) CreateVolume(ctx context.Context, in *CreateVolumeRequest)
 	logger.Info("creating-volume", lager.Data{"volume_name": volId, "volume_id": volId})
 
 	if _, ok = cs.volumes[volId]; !ok {
-		localVol = &LocalVolume{Volume: Volume{Id: volId}}
+		localVol = &LocalVolume{Volume: Volume{VolumeId: volId}}
 		cs.volumes[in.Name] = localVol
 	}
 	localVol = cs.volumes[volId]
@@ -89,7 +89,7 @@ func (cs *Controller) DeleteVolume(context context.Context, request *DeleteVolum
 }
 
 func (cs *Controller) ControllerPublishVolume(ctx context.Context, in *ControllerPublishVolumeRequest) (*ControllerPublishVolumeResponse, error) {
-	return &ControllerPublishVolumeResponse{PublishInfo: map[string]string{}}, nil
+	return &ControllerPublishVolumeResponse{PublishContext: map[string]string{}}, nil
 }
 
 func (cs *Controller) ControllerUnpublishVolume(ctx context.Context, in *ControllerUnpublishVolumeRequest) (*ControllerUnpublishVolumeResponse, error) {
@@ -100,21 +100,23 @@ func (cs *Controller) ValidateVolumeCapabilities(ctx context.Context, in *Valida
 	for _, vc := range in.GetVolumeCapabilities() {
 		if vc.GetMount().GetFsType() != "" {
 			return &ValidateVolumeCapabilitiesResponse{
-				Supported: false,
-				Message:   "Specifying FsType is unsupported.",
+				Message: "Specifying FsType is unsupported.",
 			}, nil
 		}
+
 		for _, flag := range vc.GetMount().GetMountFlags() {
 			if flag != "" {
 				return &ValidateVolumeCapabilitiesResponse{
-					Supported: false,
-					Message:   "Specifying mount flags is unsupported.",
+					Message: "Specifying mount flags is unsupported.",
 				}, nil
 			}
 		}
 	}
+
 	return &ValidateVolumeCapabilitiesResponse{
-		Supported: true,
+		Confirmed: &ValidateVolumeCapabilitiesResponse_Confirmed{
+			VolumeCapabilities: in.GetVolumeCapabilities(),
+		},
 	}, nil
 }
 
